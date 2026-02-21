@@ -1,0 +1,149 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        color-scheme: dark;
+    }
+
+    body {
+        background:
+            radial-gradient(900px 520px at 8% -10%, rgba(56, 189, 248, 0.2), transparent 60%),
+            radial-gradient(900px 640px at 92% -18%, rgba(14, 165, 233, 0.18), transparent 62%),
+            linear-gradient(180deg, #020617 0%, #020617 100%);
+        color: #e2e8f0;
+        letter-spacing: 0.01em;
+        text-rendering: optimizeLegibility;
+    }
+}
+
+@layer components {
+    .app-theme {
+        position: relative;
+        min-height: 100vh;
+        color: #e2e8f0;
+        isolation: isolate;
+    }
+
+    .app-theme::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        background-image:
+            linear-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
+        background-size: 36px 36px;
+        mask-image: radial-gradient(circle at 50% 20%, black 35%, transparent 100%);
+        pointer-events: none;
+    }
+
+    .app-theme .bg-white {
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.95));
+    }
+
+    .app-theme .bg-gray-50,
+    .app-theme .bg-gray-50\/70 {
+        background-color: transparent;
+    }
+
+    .app-theme .bg-gray-100 {
+        background-color: #020617;
+    }
+
+    .app-theme .text-gray-900 {
+        color: #f1f5f9;
+    }
+
+    .app-theme .text-gray-800 {
+        color: #e2e8f0;
+    }
+
+    .app-theme .text-gray-700 {
+        color: #c0cde0;
+    }
+
+    .app-theme .text-gray-600 {
+        color: #94a3b8;
+    }
+
+    .app-theme .text-gray-500 {
+        color: #94a3b8;
+    }
+
+    .app-theme .text-gray-400 {
+        color: #64748b;
+    }
+
+    .app-theme .border-gray-100,
+    .app-theme .border-gray-200,
+    .app-theme .border-gray-300 {
+        border-color: #2e3d58;
+    }
+
+    .app-theme .shadow-sm {
+        box-shadow: 0 14px 26px rgba(2, 6, 23, 0.42);
+    }
+
+    .app-theme .shadow,
+    .app-theme .shadow-md,
+    .app-theme .shadow-2xl {
+        box-shadow: 0 24px 54px rgba(2, 6, 23, 0.58);
+    }
+
+    .app-theme .hover\:bg-gray-50:hover {
+        background-color: rgba(51, 65, 85, 0.36);
+    }
+
+    .app-theme .hover\:bg-gray-100:hover {
+        background-color: rgba(51, 65, 85, 0.56);
+    }
+
+    .app-theme .bg-gray-900 {
+        background-image: linear-gradient(120deg, #0284c7, #1d4ed8 45%, #0f172a);
+        background-color: #0369a1;
+    }
+
+    .app-theme .hover\:bg-black:hover {
+        background-image: linear-gradient(120deg, #0ea5e9, #1d4ed8 50%, #111827);
+        background-color: #1e40af;
+    }
+
+    .app-theme .hover\:bg-gray-700:hover {
+        background-color: #334155;
+    }
+
+    .app-theme input,
+    .app-theme select,
+    .app-theme textarea {
+        background-color: #0b1220;
+        border-color: #2e3d58;
+        color: #e2e8f0;
+    }
+
+    .app-theme input::placeholder,
+    .app-theme textarea::placeholder {
+        color: #64748b;
+    }
+
+    .app-theme input:focus,
+    .app-theme select:focus,
+    .app-theme textarea:focus {
+        border-color: #38bdf8;
+        --tw-ring-color: rgba(56, 189, 248, 0.28);
+        --tw-ring-offset-color: #0b1220;
+    }
+
+    .app-theme .rounded-xl.border {
+        border-color: #2b3a54;
+    }
+
+    .app-theme table thead tr {
+        background: rgba(15, 23, 42, 0.75);
+    }
+
+    .app-theme table tbody tr:hover {
+        background: rgba(30, 41, 59, 0.34);
+    }
+}

@@ -164,6 +164,18 @@ Route::middleware(['auth', 'password.set'])->group(function () {
     Route::get('/admin/finance/export/csv-lines', [AdminFinanceController::class, 'exportLinesCsv'])
         ->middleware('role:admin')
         ->name('admin.finance.export.csv-lines');
+    Route::get('/admin/finance/export/invoices-csv', [AdminFinanceController::class, 'exportInvoicesCsv'])
+        ->middleware('role:admin')
+        ->name('admin.finance.export.invoices-csv');
+    Route::get('/admin/finance/export/payroll-csv', [AdminFinanceController::class, 'exportPayrollCsv'])
+        ->middleware('role:admin')
+        ->name('admin.finance.export.payroll-csv');
+    Route::post('/admin/finance/bookings/bulk-invoiced', [AdminFinanceController::class, 'bulkMarkInvoiced'])
+        ->middleware('role:admin')
+        ->name('admin.finance.bookings.bulk-mark-invoiced');
+    Route::post('/admin/finance/bookings/bulk-paid', [AdminFinanceController::class, 'bulkMarkPaid'])
+        ->middleware('role:admin')
+        ->name('admin.finance.bookings.bulk-mark-paid');
     Route::post('/admin/finance/bookings/{booking}/invoiced', [AdminFinanceController::class, 'markInvoiced'])
         ->middleware('role:admin')
         ->name('admin.finance.bookings.mark-invoiced');
@@ -191,6 +203,12 @@ Route::middleware(['auth', 'password.set'])->group(function () {
     Route::get('/admin/finance/documents/{document}/export-csv', [AdminFinanceDocumentController::class, 'exportCsv'])
         ->middleware('role:admin')
         ->name('admin.finance.documents.export-csv');
+    Route::post('/admin/finance/timesheets/{timesheet}/approve', [AdminFinanceController::class, 'approveTimesheet'])
+        ->middleware('role:admin')
+        ->name('admin.finance.timesheets.approve');
+    Route::post('/admin/finance/timesheets/{timesheet}/reopen', [AdminFinanceController::class, 'reopenTimesheet'])
+        ->middleware('role:admin')
+        ->name('admin.finance.timesheets.reopen');
 
     Route::get('/employee/requests', [EmployeeBookingRequestController::class, 'index'])
         ->middleware('role:employee')

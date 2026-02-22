@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 type FinanceLine = {
     assignment_id: number;
+    timesheet_id: number | null;
     employee: {
         id: number;
         name: string;
@@ -14,6 +15,9 @@ type FinanceLine = {
     wage_total: number;
     price_total: number;
     margin_total: number;
+    timesheet_status: 'draft' | 'submitted' | 'approved' | null;
+    can_approve_timesheet: boolean;
+    can_reopen_timesheet: boolean;
 };
 
 type FinanceBooking = {
@@ -29,6 +33,7 @@ type FinanceBooking = {
     can_unmark_invoiced: boolean;
     can_mark_paid: boolean;
     can_unmark_paid: boolean;
+    pay_block_reason: string | null;
     company: {
         id: number;
         name: string;
@@ -48,6 +53,11 @@ type FinanceBooking = {
 
 const props = defineProps<{
     bookings: FinanceBooking[];
+    filters: {
+        stage: 'all' | 'invoicing' | 'payroll';
+        from_date: string | null;
+        to_date: string | null;
+    };
 }>();
 
 const openBookingId = ref<number | null>(null);
@@ -65,18 +75,60 @@ const documentsIndexUrl = computed<string | null>(() => (
     hasRoute('admin.finance.documents.index') ? route('admin.finance.documents.index') : null
 ));
 
+const filterState = ref({
+    stage: props.filters.stage ?? 'invoicing',
+    from_date: props.filters.from_date ?? '',
+    to_date: props.filters.to_date ?? '',
+});
+
+watch(() => props.bookings, () => {
+    const visibleIds = new Set(props.bookings.map((booking) => booking.id));
+    selectedBookingIds.value = selectedBookingIds.value.filter((id) => visibleIds.has(id));
+}, { deep: true });
+
 const totalPrice = computed(() => props.bookings.reduce((sum, booking) => sum + booking.totals.price_total, 0));
 const totalWage = computed(() => props.bookings.reduce((sum, booking) => sum + booking.totals.wage_total, 0));
 const totalMargin = computed(() => totalPrice.value - totalWage.value);
+
+const selectedCount = computed(() => selectedBookingIds.value.length);
+const allSelected = computed(() => props.bookings.length > 0 && selectedBookingIds.value.length === props.bookings.length);
 
 const toggleDetails = (bookingId: number) => {
     openBookingId.value = openBookingId.value === bookingId ? null : bookingId;
 };
 
-const isSelected = (bookingId: number) => selectedBookingIds.value.includes(bookingId);
+const applyFilters = () => {
+    router.get(route('admin.finance.index'), {
+        stage: filterState.value.stage,
+        from_date: filterState.value.from_date || null,
+        to_date: filterState.value.to_date || null,
+    }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+    });
+};
+
+const clearFilters = () => {
+    filterState.value = {
+        stage: 'invoicing',
+        from_date: '',
+        to_date: '',
+    };
+    applyFilters();
+};
+
+const toggleSelectAll = () => {
+    if (allSelected.value) {
+        selectedBookingIds.value = [];
+        return;
+    }
+
+    selectedBookingIds.value = props.bookings.map((booking) => booking.id);
+};
 
 const toggleSelected = (bookingId: number) => {
-    if (isSelected(bookingId)) {
+    if (selectedBookingIds.value.includes(bookingId)) {
         selectedBookingIds.value = selectedBookingIds.value.filter((id) => id !== bookingId);
         return;
     }
@@ -84,12 +136,8 @@ const toggleSelected = (bookingId: number) => {
     selectedBookingIds.value = [...selectedBookingIds.value, bookingId];
 };
 
-const clearSelected = () => {
-    selectedBookingIds.value = [];
-};
-
 const createInvoiceDraft = () => {
-    if (!selectedBookingIds.value.length || !hasRoute('admin.finance.documents.store-invoice-draft')) {
+    if (!selectedCount.value || !hasRoute('admin.finance.documents.store-invoice-draft')) {
         return;
     }
 
@@ -97,12 +145,11 @@ const createInvoiceDraft = () => {
         booking_ids: selectedBookingIds.value,
     }, {
         preserveScroll: true,
-        onSuccess: () => clearSelected(),
     });
 };
 
 const createPayrollDraft = () => {
-    if (!selectedBookingIds.value.length || !hasRoute('admin.finance.documents.store-payroll-draft')) {
+    if (!selectedCount.value || !hasRoute('admin.finance.documents.store-payroll-draft')) {
         return;
     }
 
@@ -110,7 +157,6 @@ const createPayrollDraft = () => {
         booking_ids: selectedBookingIds.value,
     }, {
         preserveScroll: true,
-        onSuccess: () => clearSelected(),
     });
 };
 
@@ -128,6 +174,70 @@ const markPaid = (bookingId: number) => {
 
 const unmarkPaid = (bookingId: number) => {
     router.post(route('admin.finance.bookings.unmark-paid', bookingId), {}, { preserveScroll: true });
+};
+
+const approveTimesheet = (timesheetId: number) => {
+    router.post(route('admin.finance.timesheets.approve', timesheetId), {}, { preserveScroll: true });
+};
+
+const reopenTimesheet = (timesheetId: number) => {
+    router.post(route('admin.finance.timesheets.reopen', timesheetId), {}, { preserveScroll: true });
+};
+
+const bulkMarkInvoiced = () => {
+    if (!selectedCount.value) {
+        return;
+    }
+
+    router.post(route('admin.finance.bookings.bulk-mark-invoiced'), {
+        booking_ids: selectedBookingIds.value,
+    }, { preserveScroll: true });
+};
+
+const bulkMarkPaid = () => {
+    if (!selectedCount.value) {
+        return;
+    }
+
+    router.post(route('admin.finance.bookings.bulk-mark-paid'), {
+        booking_ids: selectedBookingIds.value,
+    }, { preserveScroll: true });
+};
+
+const buildExportQuery = () => {
+    const params = new URLSearchParams();
+
+    selectedBookingIds.value.forEach((id) => params.append('booking_ids[]', String(id)));
+
+    if (filterState.value.stage) {
+        params.append('stage', filterState.value.stage);
+    }
+
+    if (filterState.value.from_date) {
+        params.append('from_date', filterState.value.from_date);
+    }
+
+    if (filterState.value.to_date) {
+        params.append('to_date', filterState.value.to_date);
+    }
+
+    return params.toString();
+};
+
+const exportSelectedInvoices = () => {
+    if (!selectedCount.value) {
+        return;
+    }
+
+    window.location.href = `${route('admin.finance.export.invoices-csv')}?${buildExportQuery()}`;
+};
+
+const exportSelectedPayroll = () => {
+    if (!selectedCount.value) {
+        return;
+    }
+
+    window.location.href = `${route('admin.finance.export.payroll-csv')}?${buildExportQuery()}`;
 };
 
 const formatMoney = (value: number) => new Intl.NumberFormat('da-DK', {
@@ -183,14 +293,22 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                         Se kladder
                     </a>
                     <a
-                        :href="route('admin.finance.export.csv')"
+                        :href="route('admin.finance.export.csv', {
+                            stage: filterState.stage,
+                            from_date: filterState.from_date || null,
+                            to_date: filterState.to_date || null,
+                        })"
                         class="rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                         download
                     >
                         Eksportér booking CSV
                     </a>
                     <a
-                        :href="route('admin.finance.export.csv-lines')"
+                        :href="route('admin.finance.export.csv-lines', {
+                            stage: filterState.stage,
+                            from_date: filterState.from_date || null,
+                            to_date: filterState.to_date || null,
+                        })"
                         class="rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                         download
                     >
@@ -202,6 +320,35 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
 
         <div class="py-8">
             <div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+                <div class="rounded-xl border bg-white p-4 shadow-sm">
+                    <div class="grid gap-3 md:grid-cols-5">
+                        <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            Stage
+                            <select v-model="filterState.stage" class="mt-1 block w-full rounded border-gray-300 text-sm">
+                                <option value="invoicing">Klar til fakturering</option>
+                                <option value="payroll">Klar til løn</option>
+                                <option value="all">Alle eksekverede</option>
+                            </select>
+                        </label>
+                        <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            Fra dato
+                            <input v-model="filterState.from_date" class="mt-1 block w-full rounded border-gray-300 text-sm" type="date" />
+                        </label>
+                        <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            Til dato
+                            <input v-model="filterState.to_date" class="mt-1 block w-full rounded border-gray-300 text-sm" type="date" />
+                        </label>
+                        <div class="flex items-end gap-2 md:col-span-2">
+                            <button class="rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" type="button" @click="applyFilters">
+                                Opdater filter
+                            </button>
+                            <button class="rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" type="button" @click="clearFilters">
+                                Nulstil
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid gap-3 sm:grid-cols-3">
                     <div class="rounded-xl border bg-white p-4 shadow-sm">
                         <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Samlet pris</p>
@@ -218,52 +365,85 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                 </div>
 
                 <div class="rounded-xl border bg-white p-5 shadow-sm">
-                    <h3 class="mb-4 text-lg font-semibold text-gray-900">Eksekverede bookinger</h3>
-                    <div class="mb-4 flex flex-wrap gap-2">
-                        <button
-                            class="rounded border border-cyan-400/40 bg-cyan-500/20 px-3 py-2 text-xs font-semibold text-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
-                            type="button"
-                            :disabled="!selectedBookingIds.length"
-                            @click="createInvoiceDraft"
-                        >
-                            Opret fakturakladde ({{ selectedBookingIds.length }})
-                        </button>
-                        <button
-                            class="rounded border border-emerald-400/40 bg-emerald-500/20 px-3 py-2 text-xs font-semibold text-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
-                            type="button"
-                            :disabled="!selectedBookingIds.length"
-                            @click="createPayrollDraft"
-                        >
-                            Opret lønkladde ({{ selectedBookingIds.length }})
-                        </button>
-                        <button
-                            class="rounded border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-                            type="button"
-                            :disabled="!selectedBookingIds.length"
-                            @click="clearSelected"
-                        >
-                            Ryd valg
-                        </button>
+                    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                        <h3 class="text-lg font-semibold text-gray-900">Eksekverede bookinger</h3>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button
+                                class="rounded border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                type="button"
+                                @click="toggleSelectAll"
+                            >
+                                {{ allSelected ? 'Fravælg alle' : 'Vælg alle' }}
+                            </button>
+                            <span class="text-xs text-gray-600">Valgt: {{ selectedCount }}</span>
+                            <button
+                                class="rounded border border-cyan-300 px-3 py-2 text-xs font-semibold text-cyan-800 hover:bg-cyan-50 disabled:opacity-40"
+                                type="button"
+                                :disabled="!selectedCount"
+                                @click="createInvoiceDraft"
+                            >
+                                Opret fakturakladde
+                            </button>
+                            <button
+                                class="rounded border border-emerald-300 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:opacity-40"
+                                type="button"
+                                :disabled="!selectedCount"
+                                @click="createPayrollDraft"
+                            >
+                                Opret lønkladde
+                            </button>
+                            <button
+                                class="rounded border border-cyan-300 px-3 py-2 text-xs font-semibold text-cyan-800 hover:bg-cyan-50 disabled:opacity-40"
+                                type="button"
+                                :disabled="!selectedCount"
+                                @click="exportSelectedInvoices"
+                            >
+                                Eksportér faktura-CSV (valgte)
+                            </button>
+                            <button
+                                class="rounded border border-cyan-300 px-3 py-2 text-xs font-semibold text-cyan-800 hover:bg-cyan-50 disabled:opacity-40"
+                                type="button"
+                                :disabled="!selectedCount"
+                                @click="bulkMarkInvoiced"
+                            >
+                                Markér valgte faktureret
+                            </button>
+                            <button
+                                class="rounded border border-emerald-300 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:opacity-40"
+                                type="button"
+                                :disabled="!selectedCount"
+                                @click="exportSelectedPayroll"
+                            >
+                                Eksportér løn-CSV (valgte)
+                            </button>
+                            <button
+                                class="rounded border border-emerald-300 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:opacity-40"
+                                type="button"
+                                :disabled="!selectedCount"
+                                @click="bulkMarkPaid"
+                            >
+                                Markér valgte løn udbetalt
+                            </button>
+                        </div>
                     </div>
 
                     <div v-if="bookings.length" class="space-y-3">
                         <div v-for="booking in bookings" :key="booking.id" class="rounded-lg border p-3">
                             <div class="flex flex-wrap items-center justify-between gap-3">
-                                <div>
-                                    <label class="mb-1 inline-flex items-center gap-2 text-xs text-gray-600">
-                                        <input
-                                            type="checkbox"
-                                            class="h-4 w-4 rounded border-gray-300"
-                                            :checked="isSelected(booking.id)"
-                                            @change="toggleSelected(booking.id)"
-                                        >
-                                        Vælg til kladde
-                                    </label>
-                                    <p class="text-sm font-semibold text-gray-900">{{ booking.title }}</p>
-                                    <p class="text-xs text-gray-600">{{ booking.company?.name ?? '-' }} • Slut: {{ formatDateTime(booking.ends_at) }}</p>
-                                    <p class="text-xs text-gray-600">Adresse: {{ booking.company_address?.formatted ?? '-' }}</p>
-                                    <p class="text-xs text-gray-600">Eksekveret: {{ formatDateTime(booking.executed_at) }}</p>
-                                    <p class="text-xs text-gray-600">Workflow: {{ workflowLabel(booking.workflow_status) }}</p>
+                                <div class="flex items-start gap-3">
+                                    <input
+                                        class="mt-1 h-4 w-4 rounded border-gray-300"
+                                        type="checkbox"
+                                        :checked="selectedBookingIds.includes(booking.id)"
+                                        @change="toggleSelected(booking.id)"
+                                    />
+                                    <div>
+                                        <p class="text-sm font-semibold text-gray-900">{{ booking.title }}</p>
+                                        <p class="text-xs text-gray-600">{{ booking.company?.name ?? '-' }} • Slut: {{ formatDateTime(booking.ends_at) }}</p>
+                                        <p class="text-xs text-gray-600">Adresse: {{ booking.company_address?.formatted ?? '-' }}</p>
+                                        <p class="text-xs text-gray-600">Eksekveret: {{ formatDateTime(booking.executed_at) }}</p>
+                                        <p class="text-xs text-gray-600">Workflow: {{ workflowLabel(booking.workflow_status) }}</p>
+                                    </div>
                                 </div>
 
                                 <div class="text-sm text-gray-800">
@@ -316,6 +496,9 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                                     </button>
                                 </div>
                             </div>
+                            <p v-if="booking.pay_block_reason" class="mt-2 text-xs text-amber-300">
+                                {{ booking.pay_block_reason }}
+                            </p>
 
                             <div v-if="openBookingId === booking.id" class="mt-3 overflow-x-auto">
                                 <table class="min-w-full divide-y divide-gray-200 text-xs">
@@ -326,6 +509,8 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                                             <th class="px-2 py-1">Løn total</th>
                                             <th class="px-2 py-1">Pris total</th>
                                             <th class="px-2 py-1">Margin</th>
+                                            <th class="px-2 py-1">Timesheet status</th>
+                                            <th class="px-2 py-1">Timesheet handling</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-100">
@@ -335,6 +520,28 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                                             <td class="px-2 py-1">{{ formatMoney(line.wage_total) }}</td>
                                             <td class="px-2 py-1">{{ formatMoney(line.price_total) }}</td>
                                             <td class="px-2 py-1">{{ formatMoney(line.margin_total) }}</td>
+                                            <td class="px-2 py-1">{{ line.timesheet_status ?? 'calculated' }}</td>
+                                            <td class="px-2 py-1">
+                                                <div class="flex gap-2">
+                                                    <button
+                                                        v-if="line.timesheet_id && line.can_approve_timesheet"
+                                                        class="rounded border border-emerald-300 px-2 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50"
+                                                        type="button"
+                                                        @click="approveTimesheet(line.timesheet_id)"
+                                                    >
+                                                        Godkend
+                                                    </button>
+                                                    <button
+                                                        v-if="line.timesheet_id && line.can_reopen_timesheet"
+                                                        class="rounded border border-amber-300 px-2 py-1 text-[11px] font-semibold text-amber-700 hover:bg-amber-50"
+                                                        type="button"
+                                                        @click="reopenTimesheet(line.timesheet_id)"
+                                                    >
+                                                        Genåbn
+                                                    </button>
+                                                    <span v-if="!line.timesheet_id" class="text-[11px] text-gray-500">-</span>
+                                                </div>
+                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -342,7 +549,7 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                         </div>
                     </div>
 
-                    <p v-else class="text-sm text-gray-600">Ingen eksekverede bookinger endnu.</p>
+                    <p v-else class="text-sm text-gray-600">Ingen eksekverede bookinger for valgt filter.</p>
                 </div>
             </div>
         </div>

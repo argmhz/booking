@@ -17,8 +17,7 @@ if [ ! -d vendor ]; then
   composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
 fi
 
-# Avoid stale provider cache from local/dev builds.
-rm -f bootstrap/cache/packages.php bootstrap/cache/services.php || true
+# Rebuild package discovery cache for current install.
 php artisan package:discover --ansi --no-interaction
 
 exec "$@"

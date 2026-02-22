@@ -57,6 +57,9 @@ COPY . .
 COPY --from=vendor /app/vendor /var/www/html/vendor
 COPY --from=assets /app/public/build /var/www/html/public/build
 COPY --from=assets /app/bootstrap/ssr /var/www/html/bootstrap/ssr
+RUN rm -f /var/www/html/bootstrap/cache/*.php \
+    && mkdir -p /var/www/html/bootstrap/cache \
+    && chown -R 1000:1000 /var/www/html/bootstrap/cache
 RUN cp -a /var/www/html/public /opt/app-public
 
 COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint

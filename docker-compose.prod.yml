@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+    image: hr_app_runtime:prod
     container_name: hr_app_prod
     restart: unless-stopped
     user: "${PUID:-1000}:${PGID:-1000}"
@@ -59,9 +60,7 @@ services:
     networks:
       - proxy
   queue:
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile
+    image: hr_app_runtime:prod
     container_name: hr_queue_prod
     restart: unless-stopped
     user: "${PUID:-1000}:${PGID:-1000}"
@@ -73,6 +72,8 @@ services:
       - app_storage:/var/www/html/storage
       - app_cache:/var/www/html/bootstrap/cache
     depends_on:
+      app:
+        condition: service_started
       db:
         condition: service_healthy
       redis:
@@ -80,9 +81,7 @@ services:
     networks:
       - proxy
   scheduler:
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile
+    image: hr_app_runtime:prod
     container_name: hr_scheduler_prod
     restart: unless-stopped
     user: "${PUID:-1000}:${PGID:-1000}"
@@ -94,6 +93,8 @@ services:
       - app_storage:/var/www/html/storage
       - app_cache:/var/www/html/bootstrap/cache
     depends_on:
+      app:
+        condition: service_started
       db:
         condition: service_healthy
       redis:

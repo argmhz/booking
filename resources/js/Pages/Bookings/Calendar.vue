@@ -3,6 +3,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import { computed, ref, watch } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import vSelect from 'vue-select';
+import 'vue-select/dist/vue-select.css';
 
 type Company = {
     id: number;
@@ -336,6 +338,21 @@ const availableEmployees = computed(() => {
 
     return props.employees.filter((employee) => !blocked.has(employee.id));
 });
+
+const selectedEmployeeForAdd = computed<Employee | null>({
+    get() {
+        if (!addEmployeeForm.employee_user_id) {
+            return null;
+        }
+
+        return availableEmployees.value.find((employee) => employee.id === addEmployeeForm.employee_user_id) ?? null;
+    },
+    set(value) {
+        addEmployeeForm.employee_user_id = value?.id ?? null;
+    },
+});
+
+const employeeOptionLabel = (employee: Employee): string => `${employee.name} (${employee.email})`;
 
 const selectedCompanyAddresses = computed(() => {
     const company = props.companies.find((item) => item.id === editForm.company_id);
@@ -814,10 +831,15 @@ const revokeBookingApproval = (bookingId: number) => {
                         </p>
                         <label class="block text-sm text-gray-700">
                             <span class="font-medium">Medarbejder</span>
-                            <select v-model="addEmployeeForm.employee_user_id" :class="fieldClass">
-                                <option :value="null">Vælg medarbejder</option>
-                                <option v-for="employee in availableEmployees" :key="employee.id" :value="employee.id">{{ employee.name }} ({{ employee.email }})</option>
-                            </select>
+                            <v-select
+                                v-model="selectedEmployeeForAdd"
+                                :clearable="true"
+                                :filterable="true"
+                                :get-option-label="employeeOptionLabel"
+                                :options="availableEmployees"
+                                class="mt-1"
+                                placeholder="Søg medarbejder..."
+                            />
                             <InputError class="mt-1" :message="addEmployeeForm.errors.employee_user_id" />
                         </label>
                         <button class="rounded bg-gray-900 px-3 py-2 text-sm font-semibold text-white hover:bg-black disabled:opacity-50" :disabled="addEmployeeForm.processing || !addEmployeeForm.employee_user_id || isSelectedBookingLocked" type="submit">Tilføj medarbejder</button>

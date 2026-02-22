@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\SkillController as AdminSkillController;
 use App\Http\Controllers\Admin\BookingRequestController as AdminBookingRequestController;
 use App\Http\Controllers\Admin\BookingStaffingController as AdminBookingStaffingController;
 use App\Http\Controllers\Admin\FinanceController as AdminFinanceController;
+use App\Http\Controllers\Admin\FinanceDocumentController as AdminFinanceDocumentController;
 use App\Http\Controllers\Employee\BookingRequestController as EmployeeBookingRequestController;
 use App\Http\Controllers\Company\BookingController as CompanyBookingController;
 use Illuminate\Foundation\Application;
@@ -175,6 +176,21 @@ Route::middleware(['auth', 'password.set'])->group(function () {
     Route::post('/admin/finance/bookings/{booking}/unmark-paid', [AdminFinanceController::class, 'unmarkPaid'])
         ->middleware('role:admin')
         ->name('admin.finance.bookings.unmark-paid');
+    Route::get('/admin/finance/documents', [AdminFinanceDocumentController::class, 'index'])
+        ->middleware('role:admin')
+        ->name('admin.finance.documents.index');
+    Route::post('/admin/finance/documents/invoice-draft', [AdminFinanceDocumentController::class, 'storeInvoiceDraft'])
+        ->middleware('role:admin')
+        ->name('admin.finance.documents.store-invoice-draft');
+    Route::post('/admin/finance/documents/payroll-draft', [AdminFinanceDocumentController::class, 'storePayrollDraft'])
+        ->middleware('role:admin')
+        ->name('admin.finance.documents.store-payroll-draft');
+    Route::post('/admin/finance/documents/{document}/finalize', [AdminFinanceDocumentController::class, 'finalize'])
+        ->middleware('role:admin')
+        ->name('admin.finance.documents.finalize');
+    Route::get('/admin/finance/documents/{document}/export-csv', [AdminFinanceDocumentController::class, 'exportCsv'])
+        ->middleware('role:admin')
+        ->name('admin.finance.documents.export-csv');
 
     Route::get('/employee/requests', [EmployeeBookingRequestController::class, 'index'])
         ->middleware('role:employee')

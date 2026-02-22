@@ -51,6 +51,7 @@ const props = defineProps<{
 }>();
 
 const openBookingId = ref<number | null>(null);
+const selectedBookingIds = ref<number[]>([]);
 
 const totalPrice = computed(() => props.bookings.reduce((sum, booking) => sum + booking.totals.price_total, 0));
 const totalWage = computed(() => props.bookings.reduce((sum, booking) => sum + booking.totals.wage_total, 0));
@@ -58,6 +59,47 @@ const totalMargin = computed(() => totalPrice.value - totalWage.value);
 
 const toggleDetails = (bookingId: number) => {
     openBookingId.value = openBookingId.value === bookingId ? null : bookingId;
+};
+
+const isSelected = (bookingId: number) => selectedBookingIds.value.includes(bookingId);
+
+const toggleSelected = (bookingId: number) => {
+    if (isSelected(bookingId)) {
+        selectedBookingIds.value = selectedBookingIds.value.filter((id) => id !== bookingId);
+        return;
+    }
+
+    selectedBookingIds.value = [...selectedBookingIds.value, bookingId];
+};
+
+const clearSelected = () => {
+    selectedBookingIds.value = [];
+};
+
+const createInvoiceDraft = () => {
+    if (!selectedBookingIds.value.length) {
+        return;
+    }
+
+    router.post(route('admin.finance.documents.store-invoice-draft'), {
+        booking_ids: selectedBookingIds.value,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => clearSelected(),
+    });
+};
+
+const createPayrollDraft = () => {
+    if (!selectedBookingIds.value.length) {
+        return;
+    }
+
+    router.post(route('admin.finance.documents.store-payroll-draft'), {
+        booking_ids: selectedBookingIds.value,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => clearSelected(),
+    });
 };
 
 const markInvoiced = (bookingId: number) => {
@@ -122,6 +164,12 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                 <h2 class="text-xl font-semibold leading-tight text-gray-800">Økonomi: Faktura og løn</h2>
                 <div class="flex flex-wrap gap-2">
                     <a
+                        :href="route('admin.finance.documents.index')"
+                        class="rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                    >
+                        Se kladder
+                    </a>
+                    <a
                         :href="route('admin.finance.export.csv')"
                         class="rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                         download
@@ -158,11 +206,46 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
 
                 <div class="rounded-xl border bg-white p-5 shadow-sm">
                     <h3 class="mb-4 text-lg font-semibold text-gray-900">Eksekverede bookinger</h3>
+                    <div class="mb-4 flex flex-wrap gap-2">
+                        <button
+                            class="rounded border border-cyan-400/40 bg-cyan-500/20 px-3 py-2 text-xs font-semibold text-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            type="button"
+                            :disabled="!selectedBookingIds.length"
+                            @click="createInvoiceDraft"
+                        >
+                            Opret fakturakladde ({{ selectedBookingIds.length }})
+                        </button>
+                        <button
+                            class="rounded border border-emerald-400/40 bg-emerald-500/20 px-3 py-2 text-xs font-semibold text-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            type="button"
+                            :disabled="!selectedBookingIds.length"
+                            @click="createPayrollDraft"
+                        >
+                            Opret lønkladde ({{ selectedBookingIds.length }})
+                        </button>
+                        <button
+                            class="rounded border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            type="button"
+                            :disabled="!selectedBookingIds.length"
+                            @click="clearSelected"
+                        >
+                            Ryd valg
+                        </button>
+                    </div>
 
                     <div v-if="bookings.length" class="space-y-3">
                         <div v-for="booking in bookings" :key="booking.id" class="rounded-lg border p-3">
                             <div class="flex flex-wrap items-center justify-between gap-3">
                                 <div>
+                                    <label class="mb-1 inline-flex items-center gap-2 text-xs text-gray-600">
+                                        <input
+                                            type="checkbox"
+                                            class="h-4 w-4 rounded border-gray-300"
+                                            :checked="isSelected(booking.id)"
+                                            @change="toggleSelected(booking.id)"
+                                        >
+                                        Vælg til kladde
+                                    </label>
                                     <p class="text-sm font-semibold text-gray-900">{{ booking.title }}</p>
                                     <p class="text-xs text-gray-600">{{ booking.company?.name ?? '-' }} • Slut: {{ formatDateTime(booking.ends_at) }}</p>
                                     <p class="text-xs text-gray-600">Adresse: {{ booking.company_address?.formatted ?? '-' }}</p>

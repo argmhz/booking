@@ -313,6 +313,7 @@ const requestForm = useForm({
 const addEmployeeForm = useForm({
     employee_user_id: null as number | null,
 });
+const addEmployeeSearch = ref('');
 const assignmentRateForms = ref<Record<number, { worker_rate: string; customer_rate: string }>>({});
 
 const availableEmployees = computed(() => {
@@ -339,20 +340,19 @@ const availableEmployees = computed(() => {
     return props.employees.filter((employee) => !blocked.has(employee.id));
 });
 
-const selectedEmployeeForAdd = computed<Employee | null>({
-    get() {
-        if (!addEmployeeForm.employee_user_id) {
-            return null;
-        }
+const filteredAvailableEmployees = computed(() => {
+    const term = addEmployeeSearch.value.trim().toLowerCase();
 
-        return availableEmployees.value.find((employee) => employee.id === addEmployeeForm.employee_user_id) ?? null;
-    },
-    set(value) {
-        addEmployeeForm.employee_user_id = value?.id ?? null;
-    },
+    if (!term) {
+        return availableEmployees.value;
+    }
+
+    return availableEmployees.value.filter((employee) => {
+        const haystack = `${employee.name} ${employee.email}`.toLowerCase();
+
+        return haystack.includes(term);
+    });
 });
-
-const employeeOptionLabel = (employee: Employee): string => `${employee.name} (${employee.email})`;
 
 const selectedCompanyAddresses = computed(() => {
     const company = props.companies.find((item) => item.id === editForm.company_id);
@@ -397,6 +397,7 @@ watch(selectedBooking, (booking) => {
     editForm.reset();
     requestForm.reset();
     addEmployeeForm.reset();
+    addEmployeeSearch.value = '';
     assignmentRateForms.value = Object.fromEntries(
         booking.assignments.map((assignment) => [
             assignment.id,
@@ -474,7 +475,13 @@ const addEmployee = () => {
         return;
     }
 
-    addEmployeeForm.post(route('bookings.employees.add', selectedBooking.value.id), { preserveScroll: true });
+    addEmployeeForm.post(route('bookings.employees.add', selectedBooking.value.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            addEmployeeSearch.value = '';
+            addEmployeeForm.reset();
+        },
+    });
 };
 
 const cancelAssignment = (bookingId: number, assignmentId: number) => {
@@ -830,18 +837,28 @@ const revokeBookingApproval = (bookingId: number) => {
                             Ekstra medarbejdere sættes automatisk på venteliste.
                         </p>
                         <label class="block text-sm text-gray-700">
-                            <span class="font-medium">Medarbejder</span>
-                            <v-select
-                                v-model="selectedEmployeeForAdd"
-                                :clearable="true"
-                                :filterable="true"
-                                :get-option-label="employeeOptionLabel"
-                                :options="availableEmployees"
-                                class="mt-1 booking-employee-select"
-                                placeholder="Søg medarbejder..."
+                            <span class="font-medium">Søg medarbejder</span>
+                            <input
+                                v-model="addEmployeeSearch"
+                                :class="fieldClass"
+                                autocomplete="off"
+                                placeholder="Søg på navn eller email"
+                                type="text"
                             />
+                        </label>
+                        <label class="block text-sm text-gray-700">
+                            <span class="font-medium">Medarbejder ({{ filteredAvailableEmployees.length }})</span>
+                            <select v-model="addEmployeeForm.employee_user_id" :class="fieldClass">
+                                <option :value="null">Vælg medarbejder</option>
+                                <option v-for="employee in filteredAvailableEmployees" :key="employee.id" :value="employee.id">
+                                    {{ employee.name }} ({{ employee.email }})
+                                </option>
+                            </select>
                             <InputError class="mt-1" :message="addEmployeeForm.errors.employee_user_id" />
                         </label>
+                        <p v-if="!filteredAvailableEmployees.length" class="text-xs text-amber-700">
+                            Ingen medarbejdere matcher din søgning.
+                        </p>
                         <button class="rounded bg-gray-900 px-3 py-2 text-sm font-semibold text-white hover:bg-black disabled:opacity-50" :disabled="addEmployeeForm.processing || !addEmployeeForm.employee_user_id || isSelectedBookingLocked" type="submit">Tilføj medarbejder</button>
                         <p v-if="isSelectedBookingLocked" class="text-xs text-red-700">Bookingen er låst og kan ikke ændres.</p>
                     </form>

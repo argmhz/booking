@@ -23,6 +23,7 @@ RUN apk add --no-cache \
     zip \
     && pecl install redis \
     && docker-php-ext-enable redis \
+    && git config --system --add safe.directory /var/www/html \
     && { \
         echo 'sys_temp_dir=/tmp'; \
         echo 'upload_tmp_dir=/tmp'; \

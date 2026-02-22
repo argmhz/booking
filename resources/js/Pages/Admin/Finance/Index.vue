@@ -5,6 +5,7 @@ import { computed, ref, watch } from 'vue';
 
 type FinanceLine = {
     assignment_id: number;
+    timesheet_id: number | null;
     employee: {
         id: number;
         name: string;
@@ -15,6 +16,8 @@ type FinanceLine = {
     price_total: number;
     margin_total: number;
     timesheet_status: 'draft' | 'submitted' | 'approved' | null;
+    can_approve_timesheet: boolean;
+    can_reopen_timesheet: boolean;
 };
 
 type FinanceBooking = {
@@ -30,6 +33,7 @@ type FinanceBooking = {
     can_unmark_invoiced: boolean;
     can_mark_paid: boolean;
     can_unmark_paid: boolean;
+    pay_block_reason: string | null;
     company: {
         id: number;
         name: string;
@@ -134,6 +138,14 @@ const markPaid = (bookingId: number) => {
 
 const unmarkPaid = (bookingId: number) => {
     router.post(route('admin.finance.bookings.unmark-paid', bookingId), {}, { preserveScroll: true });
+};
+
+const approveTimesheet = (timesheetId: number) => {
+    router.post(route('admin.finance.timesheets.approve', timesheetId), {}, { preserveScroll: true });
+};
+
+const reopenTimesheet = (timesheetId: number) => {
+    router.post(route('admin.finance.timesheets.reopen', timesheetId), {}, { preserveScroll: true });
 };
 
 const bulkMarkInvoiced = () => {
@@ -425,6 +437,9 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                                     </button>
                                 </div>
                             </div>
+                            <p v-if="booking.pay_block_reason" class="mt-2 text-xs text-amber-300">
+                                {{ booking.pay_block_reason }}
+                            </p>
 
                             <div v-if="openBookingId === booking.id" class="mt-3 overflow-x-auto">
                                 <table class="min-w-full divide-y divide-gray-200 text-xs">
@@ -436,6 +451,7 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                                             <th class="px-2 py-1">Pris total</th>
                                             <th class="px-2 py-1">Margin</th>
                                             <th class="px-2 py-1">Timesheet status</th>
+                                            <th class="px-2 py-1">Timesheet handling</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-100">
@@ -446,6 +462,27 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                                             <td class="px-2 py-1">{{ formatMoney(line.price_total) }}</td>
                                             <td class="px-2 py-1">{{ formatMoney(line.margin_total) }}</td>
                                             <td class="px-2 py-1">{{ line.timesheet_status ?? 'calculated' }}</td>
+                                            <td class="px-2 py-1">
+                                                <div class="flex gap-2">
+                                                    <button
+                                                        v-if="line.timesheet_id && line.can_approve_timesheet"
+                                                        class="rounded border border-emerald-300 px-2 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50"
+                                                        type="button"
+                                                        @click="approveTimesheet(line.timesheet_id)"
+                                                    >
+                                                        Godkend
+                                                    </button>
+                                                    <button
+                                                        v-if="line.timesheet_id && line.can_reopen_timesheet"
+                                                        class="rounded border border-amber-300 px-2 py-1 text-[11px] font-semibold text-amber-700 hover:bg-amber-50"
+                                                        type="button"
+                                                        @click="reopenTimesheet(line.timesheet_id)"
+                                                    >
+                                                        Genåbn
+                                                    </button>
+                                                    <span v-if="!line.timesheet_id" class="text-[11px] text-gray-500">-</span>
+                                                </div>
+                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>

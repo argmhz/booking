@@ -187,6 +187,12 @@ Route::middleware(['auth', 'password.set'])->group(function () {
     Route::post('/admin/finance/bookings/{booking}/unmark-paid', [AdminFinanceController::class, 'unmarkPaid'])
         ->middleware('role:admin')
         ->name('admin.finance.bookings.unmark-paid');
+    Route::post('/admin/finance/timesheets/{timesheet}/approve', [AdminFinanceController::class, 'approveTimesheet'])
+        ->middleware('role:admin')
+        ->name('admin.finance.timesheets.approve');
+    Route::post('/admin/finance/timesheets/{timesheet}/reopen', [AdminFinanceController::class, 'reopenTimesheet'])
+        ->middleware('role:admin')
+        ->name('admin.finance.timesheets.reopen');
 
     Route::get('/employee/requests', [EmployeeBookingRequestController::class, 'index'])
         ->middleware('role:employee')

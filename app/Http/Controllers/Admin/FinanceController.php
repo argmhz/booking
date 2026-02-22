@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\BookingAssignment;
+use App\Models\Timesheet;
 use App\Services\BookingLifecycleService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -197,6 +198,7 @@ class FinanceController extends Controller
 
         $bookings = Booking::query()
             ->whereIn('id', $selectedBookingIds)
+            ->with(['timesheets:id,booking_id,status'])
             ->get();
 
         $updated = 0;
@@ -237,7 +239,7 @@ class FinanceController extends Controller
         $updated = 0;
 
         foreach ($bookings as $booking) {
-            if (! $booking->canBePaid()) {
+            if (! $booking->canBePaid() || $booking->timesheets->contains(fn (Timesheet $timesheet): bool => $timesheet->status !== 'approved')) {
                 continue;
             }
 
@@ -319,6 +321,7 @@ class FinanceController extends Controller
 
                         return [
                             'assignment_id' => $assignment->id,
+                            'timesheet_id' => $timesheet?->id,
                             'employee' => $assignment->employee ? [
                                 'id' => $assignment->employee->id,
                                 'name' => $assignment->employee->name,
@@ -329,12 +332,21 @@ class FinanceController extends Controller
                             'price_total' => round($priceTotal, 2),
                             'margin_total' => round($priceTotal - $wageTotal, 2),
                             'timesheet_status' => $timesheet?->status,
+                            'can_approve_timesheet' => $timesheet?->status === 'submitted' || $timesheet?->status === 'draft',
+                            'can_reopen_timesheet' => $timesheet?->status === 'approved',
                         ];
                     })
                     ->values();
 
                 $wageTotal = round((float) $lines->sum('wage_total'), 2);
                 $priceTotal = round((float) $lines->sum('price_total'), 2);
+                $hasBlockingTimesheet = $lines->contains(function (array $line): bool {
+                    if (! $line['timesheet_status']) {
+                        return false;
+                    }
+
+                    return $line['timesheet_status'] !== 'approved';
+                });
 
                 return [
                     'id' => $booking->id,
@@ -347,8 +359,9 @@ class FinanceController extends Controller
                     'is_paid' => (bool) $booking->is_paid,
                     'can_mark_invoiced' => $booking->canBeInvoiced(),
                     'can_unmark_invoiced' => $booking->canInvoiceBeRemoved(),
-                    'can_mark_paid' => $booking->canBePaid(),
+                    'can_mark_paid' => $booking->canBePaid() && ! $hasBlockingTimesheet,
                     'can_unmark_paid' => $booking->canPaymentBeRemoved(),
+                    'pay_block_reason' => $hasBlockingTimesheet ? 'Alle timesheets skal være godkendt før løn kan markeres udbetalt.' : null,
                     'company' => $booking->company ? [
                         'id' => $booking->company->id,
                         'name' => $booking->company->name,
@@ -502,5 +515,29 @@ class FinanceController extends Controller
         $booking->update(['is_paid' => false]);
 
         return back()->with('status', 'Løn-markering fjernet.');
+    }
+
+    public function approveTimesheet(Timesheet $timesheet): RedirectResponse
+    {
+        if ($timesheet->status === 'approved') {
+            return back()->with('status', 'Timesheet er allerede godkendt.');
+        }
+
+        $timesheet->update(['status' => 'approved']);
+
+        return back()->with('status', 'Timesheet godkendt.');
+    }
+
+    public function reopenTimesheet(Timesheet $timesheet): RedirectResponse
+    {
+        if ($timesheet->status !== 'approved') {
+            return back()->withErrors([
+                'timesheet' => 'Kun godkendte timesheets kan genåbnes.',
+            ]);
+        }
+
+        $timesheet->update(['status' => 'submitted']);
+
+        return back()->with('status', 'Timesheet genåbnet til behandling.');
     }
 }

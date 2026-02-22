@@ -10,12 +10,14 @@ use App\Models\User;
 use App\Services\BookingLifecycleService;
 use App\Services\BookingStaffingService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+    Notification::fake();
 
     Role::findOrCreate('admin', 'web');
     Role::findOrCreate('employee', 'web');

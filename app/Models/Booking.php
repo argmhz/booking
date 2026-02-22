@@ -101,6 +101,11 @@ class Booking extends Model
         return $this->hasMany(Timesheet::class, 'booking_id');
     }
 
+    public function financeDocumentLines(): HasMany
+    {
+        return $this->hasMany(FinanceDocumentLine::class);
+    }
+
     public function getWorkflowStatusAttribute(): string
     {
         if ($this->is_paid) {

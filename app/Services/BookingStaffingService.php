@@ -11,8 +11,10 @@ use App\Models\User;
 use App\Notifications\BookingRequestNotification;
 use App\Notifications\BookingWaitlistNotification;
 use Carbon\Carbon;
+use Throwable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
 class BookingStaffingService
@@ -61,7 +63,16 @@ class BookingStaffingService
             ->get();
 
         if ($recipients->isNotEmpty()) {
-            Notification::send($recipients, new BookingRequestNotification($bookingForNotification));
+            try {
+                Notification::send($recipients, new BookingRequestNotification($bookingForNotification));
+            } catch (Throwable $exception) {
+                Log::warning('Booking request notification failed', [
+                    'booking_id' => $bookingForNotification->id,
+                    'recipient_ids' => $recipients->pluck('id')->values()->all(),
+                    'error' => $exception->getMessage(),
+                ]);
+                report($exception);
+            }
         }
     }
 
@@ -270,7 +281,17 @@ class BookingStaffingService
         $employee = User::query()->find($employeeUserId);
 
         if ($employee) {
-            $employee->notify(new BookingWaitlistNotification($booking, $nextPosition));
+            try {
+                $employee->notify(new BookingWaitlistNotification($booking, $nextPosition));
+            } catch (Throwable $exception) {
+                Log::warning('Booking waitlist notification failed', [
+                    'booking_id' => $booking->id,
+                    'employee_id' => $employee->id,
+                    'position' => $nextPosition,
+                    'error' => $exception->getMessage(),
+                ]);
+                report($exception);
+            }
         }
     }
 

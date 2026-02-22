@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\BookingAssignment;
+use App\Models\Timesheet;
 use App\Services\BookingLifecycleService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -38,35 +39,20 @@ class FinanceController extends Controller
         $bookings = $this->buildFinanceBookings($this->normalizeFilters($request, 'all'));
         $fileName = 'oekonomi-bookinger-'.now()->format('Y-m-d_His').'.csv';
 
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
-        ];
-
-        return response()->streamDownload(function () use ($bookings): void {
-            $handle = fopen('php://output', 'wb');
-
-            if (! $handle) {
-                return;
-            }
-
-            fwrite($handle, "\xEF\xBB\xBF");
-
-            fputcsv($handle, [
-                'Booking ID',
-                'Titel',
-                'Virksomhed',
-                'Adresse',
-                'Start',
-                'Slut',
-                'Eksekveret',
-                'Faktureret',
-                'Løn udbetalt',
-                'Løn total',
-                'Pris total',
-                'Margin total',
-            ], ';');
-
+        return $this->streamCsv($fileName, [
+            'Booking ID',
+            'Titel',
+            'Virksomhed',
+            'Adresse',
+            'Start',
+            'Slut',
+            'Eksekveret',
+            'Faktureret',
+            'Løn udbetalt',
+            'Løn total',
+            'Pris total',
+            'Margin total',
+        ], function ($handle) use ($bookings): void {
             foreach ($bookings as $booking) {
                 fputcsv($handle, [
                     $booking['id'],
@@ -83,9 +69,7 @@ class FinanceController extends Controller
                     $booking['totals']['margin_total'],
                 ], ';');
             }
-
-            fclose($handle);
-        }, $fileName, $headers);
+        });
     }
 
     public function exportLinesCsv(Request $request): StreamedResponse
@@ -95,35 +79,21 @@ class FinanceController extends Controller
         $bookings = $this->buildFinanceBookings($this->normalizeFilters($request, 'all'));
         $fileName = 'oekonomi-linjer-'.now()->format('Y-m-d_His').'.csv';
 
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
-        ];
-
-        return response()->streamDownload(function () use ($bookings): void {
-            $handle = fopen('php://output', 'wb');
-
-            if (! $handle) {
-                return;
-            }
-
-            fwrite($handle, "\xEF\xBB\xBF");
-
-            fputcsv($handle, [
-                'Booking ID',
-                'Titel',
-                'Virksomhed',
-                'Adresse',
-                'Medarbejder',
-                'Medarbejder Email',
-                'Timer',
-                'Løn total',
-                'Pris total',
-                'Margin',
-                'Faktureret',
-                'Løn udbetalt',
-            ], ';');
-
+        return $this->streamCsv($fileName, [
+            'Booking ID',
+            'Titel',
+            'Virksomhed',
+            'Adresse',
+            'Medarbejder',
+            'Medarbejder Email',
+            'Timer',
+            'Løn total',
+            'Pris total',
+            'Margin',
+            'Timesheet status',
+            'Faktureret',
+            'Løn udbetalt',
+        ], function ($handle) use ($bookings): void {
             foreach ($bookings as $booking) {
                 foreach ($booking['lines'] as $line) {
                     fputcsv($handle, [
@@ -137,14 +107,164 @@ class FinanceController extends Controller
                         $line['wage_total'],
                         $line['price_total'],
                         $line['margin_total'],
+                        $line['timesheet_status'] ?? 'calculated',
                         $booking['is_invoiced'] ? 'Ja' : 'Nej',
                         $booking['is_paid'] ? 'Ja' : 'Nej',
                     ], ';');
                 }
             }
+        });
+    }
 
-            fclose($handle);
-        }, $fileName, $headers);
+    public function exportInvoicesCsv(Request $request): StreamedResponse
+    {
+        $this->bookingLifecycleService->syncExecutedBookings();
+
+        $selectedBookingIds = $this->selectedBookingIds($request);
+        $bookings = $this->buildFinanceBookings($this->normalizeFilters($request, 'all'))
+            ->whereIn('id', $selectedBookingIds)
+            ->filter(fn (array $booking): bool => (bool) $booking['can_mark_invoiced'])
+            ->values();
+
+        $fileName = 'faktura-kladde-'.now()->format('Y-m-d_His').'.csv';
+
+        return $this->streamCsv($fileName, [
+            'Booking ID',
+            'Titel',
+            'Virksomhed',
+            'Adresse',
+            'Slut',
+            'Pris total',
+            'Løn total',
+            'Margin',
+        ], function ($handle) use ($bookings): void {
+            foreach ($bookings as $booking) {
+                fputcsv($handle, [
+                    $booking['id'],
+                    $booking['title'],
+                    $booking['company']['name'] ?? '',
+                    $booking['company_address']['formatted'] ?? '',
+                    $booking['ends_at'],
+                    $booking['totals']['price_total'],
+                    $booking['totals']['wage_total'],
+                    $booking['totals']['margin_total'],
+                ], ';');
+            }
+        });
+    }
+
+    public function exportPayrollCsv(Request $request): StreamedResponse
+    {
+        $this->bookingLifecycleService->syncExecutedBookings();
+
+        $selectedBookingIds = $this->selectedBookingIds($request);
+        $bookings = $this->buildFinanceBookings($this->normalizeFilters($request, 'all'))
+            ->whereIn('id', $selectedBookingIds)
+            ->filter(fn (array $booking): bool => (bool) $booking['can_mark_paid'])
+            ->values();
+
+        $fileName = 'loen-kladde-'.now()->format('Y-m-d_His').'.csv';
+
+        return $this->streamCsv($fileName, [
+            'Booking ID',
+            'Titel',
+            'Virksomhed',
+            'Medarbejder',
+            'Email',
+            'Timer',
+            'Løn total',
+            'Timesheet status',
+        ], function ($handle) use ($bookings): void {
+            foreach ($bookings as $booking) {
+                foreach ($booking['lines'] as $line) {
+                    fputcsv($handle, [
+                        $booking['id'],
+                        $booking['title'],
+                        $booking['company']['name'] ?? '',
+                        $line['employee']['name'] ?? '',
+                        $line['employee']['email'] ?? '',
+                        $line['hours_worked'],
+                        $line['wage_total'],
+                        $line['timesheet_status'] ?? 'calculated',
+                    ], ';');
+                }
+            }
+        });
+    }
+
+    public function bulkMarkInvoiced(Request $request): RedirectResponse
+    {
+        $selectedBookingIds = $this->selectedBookingIds($request);
+
+        $bookings = Booking::query()
+            ->whereIn('id', $selectedBookingIds)
+            ->with(['timesheets:id,booking_id,status'])
+            ->get();
+
+        $updated = 0;
+
+        foreach ($bookings as $booking) {
+            if (! $booking->canBeInvoiced()) {
+                continue;
+            }
+
+            $booking->update(['is_invoiced' => true]);
+            $updated++;
+        }
+
+        if ($updated === 0) {
+            return back()->withErrors([
+                'booking_ids' => 'Ingen valgte bookinger kunne markeres som faktureret.',
+            ]);
+        }
+
+        $skipped = $bookings->count() - $updated;
+        $message = $updated.' booking(er) markeret som faktureret.';
+
+        if ($skipped > 0) {
+            $message .= ' '.$skipped.' blev sprunget over pga. status.';
+        }
+
+        return back()->with('status', $message);
+    }
+
+    public function bulkMarkPaid(Request $request): RedirectResponse
+    {
+        $selectedBookingIds = $this->selectedBookingIds($request);
+
+        $bookings = Booking::query()
+            ->whereIn('id', $selectedBookingIds)
+            ->with(['timesheets:id,booking_id,status'])
+            ->get();
+
+        $updated = 0;
+
+        foreach ($bookings as $booking) {
+            if (! $booking->canBePaid() || $booking->timesheets->contains(fn (Timesheet $timesheet): bool => $timesheet->status !== 'approved')) {
+                continue;
+            }
+
+            $booking->update([
+                'is_invoiced' => true,
+                'is_paid' => true,
+            ]);
+            $updated++;
+        }
+
+        if ($updated === 0) {
+            return back()->withErrors([
+                'booking_ids' => 'Ingen valgte bookinger kunne markeres som løn udbetalt.',
+            ]);
+        }
+
+        $skipped = $bookings->count() - $updated;
+        $message = $updated.' booking(er) markeret som løn udbetalt.';
+
+        if ($skipped > 0) {
+            $message .= ' '.$skipped.' blev sprunget over pga. status.';
+        }
+
+        return back()->with('status', $message);
     }
 
     /**
@@ -202,6 +322,7 @@ class FinanceController extends Controller
 
                         return [
                             'assignment_id' => $assignment->id,
+                            'timesheet_id' => $timesheet?->id,
                             'employee' => $assignment->employee ? [
                                 'id' => $assignment->employee->id,
                                 'name' => $assignment->employee->name,
@@ -211,12 +332,22 @@ class FinanceController extends Controller
                             'wage_total' => round($wageTotal, 2),
                             'price_total' => round($priceTotal, 2),
                             'margin_total' => round($priceTotal - $wageTotal, 2),
+                            'timesheet_status' => $timesheet?->status,
+                            'can_approve_timesheet' => $timesheet?->status === 'submitted' || $timesheet?->status === 'draft',
+                            'can_reopen_timesheet' => $timesheet?->status === 'approved',
                         ];
                     })
                     ->values();
 
                 $wageTotal = round((float) $lines->sum('wage_total'), 2);
                 $priceTotal = round((float) $lines->sum('price_total'), 2);
+                $hasBlockingTimesheet = $lines->contains(function (array $line): bool {
+                    if (! $line['timesheet_status']) {
+                        return false;
+                    }
+
+                    return $line['timesheet_status'] !== 'approved';
+                });
 
                 return [
                     'id' => $booking->id,
@@ -229,8 +360,9 @@ class FinanceController extends Controller
                     'is_paid' => (bool) $booking->is_paid,
                     'can_mark_invoiced' => $booking->canBeInvoiced(),
                     'can_unmark_invoiced' => $booking->canInvoiceBeRemoved(),
-                    'can_mark_paid' => $booking->canBePaid(),
+                    'can_mark_paid' => $booking->canBePaid() && ! $hasBlockingTimesheet,
                     'can_unmark_paid' => $booking->canPaymentBeRemoved(),
+                    'pay_block_reason' => $hasBlockingTimesheet ? 'Alle timesheets skal være godkendt før løn kan markeres udbetalt.' : null,
                     'company' => $booking->company ? [
                         'id' => $booking->company->id,
                         'name' => $booking->company->name,
@@ -308,6 +440,40 @@ class FinanceController extends Controller
         ];
     }
 
+    /**
+     * @return array<int>
+     */
+    private function selectedBookingIds(Request $request): array
+    {
+        $validated = $request->validate([
+            'booking_ids' => ['required', 'array', 'min:1'],
+            'booking_ids.*' => ['integer', 'min:1'],
+        ]);
+
+        return array_values(array_unique(array_map('intval', $validated['booking_ids'])));
+    }
+
+    private function streamCsv(string $fileName, array $headersRow, callable $writer): StreamedResponse
+    {
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
+        ];
+
+        return response()->streamDownload(function () use ($headersRow, $writer): void {
+            $handle = fopen('php://output', 'wb');
+
+            if (! $handle) {
+                return;
+            }
+
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, $headersRow, ';');
+            $writer($handle);
+            fclose($handle);
+        }, $fileName, $headers);
+    }
+
     public function markInvoiced(Booking $booking): RedirectResponse
     {
         if (! $booking->canBeInvoiced()) {
@@ -342,6 +508,14 @@ class FinanceController extends Controller
             ]);
         }
 
+        $booking->loadMissing(['timesheets:id,booking_id,status']);
+
+        if ($booking->timesheets->contains(fn (Timesheet $timesheet): bool => $timesheet->status !== 'approved')) {
+            return back()->withErrors([
+                'booking' => 'Alle timesheets skal være godkendt før løn kan markeres som udbetalt.',
+            ]);
+        }
+
         $booking->update([
             'is_invoiced' => true,
             'is_paid' => true,
@@ -361,5 +535,29 @@ class FinanceController extends Controller
         $booking->update(['is_paid' => false]);
 
         return back()->with('status', 'Løn-markering fjernet.');
+    }
+
+    public function approveTimesheet(Timesheet $timesheet): RedirectResponse
+    {
+        if ($timesheet->status === 'approved') {
+            return back()->with('status', 'Timesheet er allerede godkendt.');
+        }
+
+        $timesheet->update(['status' => 'approved']);
+
+        return back()->with('status', 'Timesheet godkendt.');
+    }
+
+    public function reopenTimesheet(Timesheet $timesheet): RedirectResponse
+    {
+        if ($timesheet->status !== 'approved') {
+            return back()->withErrors([
+                'timesheet' => 'Kun godkendte timesheets kan genåbnes.',
+            ]);
+        }
+
+        $timesheet->update(['status' => 'submitted']);
+
+        return back()->with('status', 'Timesheet genåbnet til behandling.');
     }
 }

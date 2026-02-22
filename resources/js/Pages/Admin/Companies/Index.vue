@@ -97,6 +97,9 @@ const selectedCompany = computed(() => props.companies.data.find((company) => co
 const fieldClass = 'mt-1 block w-full rounded-lg border-gray-300 bg-white text-sm shadow-sm transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200';
 const checkboxClass = 'h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500';
 const filterFieldClass = 'w-full rounded-lg border-gray-300 bg-white text-sm shadow-sm transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200';
+const statusBadgeClass = (isActive: boolean) => isActive
+    ? 'inline-flex rounded-full border border-emerald-400/40 bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-200'
+    : 'inline-flex rounded-full border border-rose-400/40 bg-rose-500/15 px-2.5 py-1 text-xs font-semibold text-rose-200';
 
 const visiblePages = computed(() => {
     const total = props.companies.last_page;
@@ -325,33 +328,35 @@ const setEditDefaultAddress = (index: number) => {
                             <button class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-100" type="submit">Filtrer</button>
                         </div>
                     </form>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <div class="overflow-x-auto rounded-xl border border-slate-700/70">
+                        <table class="min-w-full divide-y divide-slate-700 text-sm">
                             <thead>
-                                <tr class="text-left text-gray-600">
-                                    <th class="px-3 py-2">Navn</th>
-                                    <th class="px-3 py-2">Email</th>
-                                    <th class="px-3 py-2">Telefon</th>
-                                    <th class="px-3 py-2">CVR</th>
-                                    <th class="px-3 py-2">Adresser</th>
-                                    <th class="px-3 py-2">Status</th>
-                                    <th class="px-3 py-2">Handling</th>
+                                <tr class="text-left text-xs uppercase tracking-wide text-gray-500">
+                                    <th class="px-3 py-3">Navn</th>
+                                    <th class="px-3 py-3">Email</th>
+                                    <th class="px-3 py-3">Telefon</th>
+                                    <th class="px-3 py-3">CVR</th>
+                                    <th class="px-3 py-3">Adresser</th>
+                                    <th class="px-3 py-3">Status</th>
+                                    <th class="px-3 py-3">Handling</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-100">
+                            <tbody class="divide-y divide-slate-800/80">
                                 <tr v-for="company in companies.data" :key="company.id">
-                                    <td class="px-3 py-2">{{ company.name }}</td>
-                                    <td class="px-3 py-2">{{ company.email ?? '-' }}</td>
-                                    <td class="px-3 py-2">{{ company.phone ?? '-' }}</td>
-                                    <td class="px-3 py-2">{{ company.cvr ?? '-' }}</td>
-                                    <td class="px-3 py-2">{{ company.addresses.length }}</td>
-                                    <td class="px-3 py-2">{{ company.is_active ? 'Aktiv' : 'Inaktiv' }}</td>
-                                    <td class="px-3 py-2">
-                                        <div class="flex gap-1">
-                                            <Link class="rounded border border-indigo-300 bg-indigo-50 px-2 py-1 text-xs text-indigo-700" :href="route('admin.companies.bookings-preview', company.id)">Se virksomheds side</Link>
-                                            <button class="rounded border border-gray-300 px-2 py-1 text-xs hover:bg-gray-50" type="button" @click="openEdit(company)">Rediger</button>
-                                            <button class="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-amber-800" type="button" @click="toggleCompany(company)">{{ company.is_active ? 'Deaktiver' : 'Aktiver' }}</button>
-                                            <button class="rounded border border-red-300 bg-red-50 px-2 py-1 text-xs text-red-700" type="button" @click="deleteCompany(company)">Slet</button>
+                                    <td class="px-3 py-3 font-medium text-gray-900">{{ company.name }}</td>
+                                    <td class="px-3 py-3 text-gray-700">{{ company.email ?? '-' }}</td>
+                                    <td class="px-3 py-3 text-gray-700">{{ company.phone ?? '-' }}</td>
+                                    <td class="px-3 py-3 text-gray-700">{{ company.cvr ?? '-' }}</td>
+                                    <td class="px-3 py-3 text-gray-700">{{ company.addresses.length }}</td>
+                                    <td class="px-3 py-3">
+                                        <span :class="statusBadgeClass(company.is_active)">{{ company.is_active ? 'Aktiv' : 'Inaktiv' }}</span>
+                                    </td>
+                                    <td class="px-3 py-3">
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <Link class="rounded-full border border-cyan-400/35 bg-cyan-500/15 px-2.5 py-1 text-xs font-medium text-cyan-100" :href="route('admin.companies.bookings-preview', company.id)">Se virksomheds side</Link>
+                                            <button class="rounded-full border border-slate-600 px-2.5 py-1 text-xs font-medium text-slate-200 hover:bg-slate-800/80" type="button" @click="openEdit(company)">Rediger</button>
+                                            <button class="rounded-full border border-amber-400/40 bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-100" type="button" @click="toggleCompany(company)">{{ company.is_active ? 'Deaktiver' : 'Aktiver' }}</button>
+                                            <button class="rounded-full border border-rose-400/40 bg-rose-500/15 px-2.5 py-1 text-xs font-medium text-rose-100" type="button" @click="deleteCompany(company)">Slet</button>
                                         </div>
                                     </td>
                                 </tr>

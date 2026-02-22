@@ -13,7 +13,8 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Space Grotesk', ...defaultTheme.fontFamily.sans],
+                sans: ['IBM Plex Sans', ...defaultTheme.fontFamily.sans],
+                display: ['Manrope', ...defaultTheme.fontFamily.sans],
             },
         },
     },

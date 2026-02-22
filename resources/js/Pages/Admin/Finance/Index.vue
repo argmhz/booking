@@ -179,7 +179,7 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                                 <div class="flex flex-wrap gap-2">
                                     <button
                                         v-if="booking.can_mark_invoiced"
-                                        class="rounded bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+                                        class="rounded-full border border-cyan-400/40 bg-cyan-500/20 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/30"
                                         type="button"
                                         @click="markInvoiced(booking.id)"
                                     >
@@ -187,7 +187,7 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                                     </button>
                                     <button
                                         v-else-if="booking.can_unmark_invoiced"
-                                        class="rounded border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+                                        class="rounded-full border border-cyan-400/40 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/20"
                                         type="button"
                                         @click="unmarkInvoiced(booking.id)"
                                     >
@@ -196,7 +196,7 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
 
                                     <button
                                         v-if="booking.can_mark_paid"
-                                        class="rounded bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                                        class="rounded-full border border-emerald-400/40 bg-emerald-500/20 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/30"
                                         type="button"
                                         @click="markPaid(booking.id)"
                                     >
@@ -204,7 +204,7 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                                     </button>
                                     <button
                                         v-else-if="booking.can_unmark_paid"
-                                        class="rounded border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                                        class="rounded-full border border-emerald-400/40 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/20"
                                         type="button"
                                         @click="unmarkPaid(booking.id)"
                                     >
@@ -212,7 +212,7 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                                     </button>
 
                                     <button
-                                        class="rounded border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                        class="rounded-full border border-slate-600 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-800/80"
                                         type="button"
                                         @click="toggleDetails(booking.id)"
                                     >

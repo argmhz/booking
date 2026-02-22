@@ -174,25 +174,25 @@ const deleteSkill = (skill: Skill) => {
                         </div>
                     </form>
 
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <div class="overflow-x-auto rounded-xl border border-slate-700/70">
+                        <table class="min-w-full divide-y divide-slate-700 text-sm">
                             <thead>
-                                <tr class="text-left text-gray-600">
-                                    <th class="px-3 py-2">Navn</th>
-                                    <th class="px-3 py-2">Beskrivelse</th>
-                                    <th class="px-3 py-2">Tildelt medarbejdere</th>
-                                    <th class="px-3 py-2">Handling</th>
+                                <tr class="text-left text-xs uppercase tracking-wide text-gray-500">
+                                    <th class="px-3 py-3">Navn</th>
+                                    <th class="px-3 py-3">Beskrivelse</th>
+                                    <th class="px-3 py-3">Tildelt medarbejdere</th>
+                                    <th class="px-3 py-3">Handling</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-100">
+                            <tbody class="divide-y divide-slate-800/80">
                                 <tr v-for="skill in skills.data" :key="skill.id">
-                                    <td class="px-3 py-2 font-medium text-gray-900">{{ skill.name }}</td>
-                                    <td class="px-3 py-2">{{ skill.description || '-' }}</td>
-                                    <td class="px-3 py-2">{{ skill.employee_profiles_count }}</td>
-                                    <td class="px-3 py-2">
-                                        <div class="flex gap-1">
-                                            <button class="rounded border border-gray-300 px-2 py-1 text-xs hover:bg-gray-50" type="button" @click="openEdit(skill)">Rediger</button>
-                                            <button class="rounded border border-red-300 bg-red-50 px-2 py-1 text-xs text-red-700 disabled:cursor-not-allowed disabled:opacity-60" :disabled="skill.employee_profiles_count > 0" type="button" @click="deleteSkill(skill)">
+                                    <td class="px-3 py-3 font-medium text-gray-900">{{ skill.name }}</td>
+                                    <td class="px-3 py-3 text-gray-700">{{ skill.description || '-' }}</td>
+                                    <td class="px-3 py-3 text-gray-700">{{ skill.employee_profiles_count }}</td>
+                                    <td class="px-3 py-3">
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <button class="rounded-full border border-slate-600 px-2.5 py-1 text-xs font-medium text-slate-200 hover:bg-slate-800/80" type="button" @click="openEdit(skill)">Rediger</button>
+                                            <button class="rounded-full border border-rose-400/40 bg-rose-500/15 px-2.5 py-1 text-xs font-medium text-rose-100 disabled:cursor-not-allowed disabled:opacity-60" :disabled="skill.employee_profiles_count > 0" type="button" @click="deleteSkill(skill)">
                                                 Slet
                                             </button>
                                         </div>

@@ -87,6 +87,29 @@ const bookingStatus = (booking: Booking): string => {
 
     return 'Åben';
 };
+
+const bookingStatusClass = (booking: Booking): string => {
+    const status = booking.workflow_status
+        ?? (booking.is_paid ? 'paid' : booking.is_invoiced ? 'invoiced' : booking.executed_at ? 'executed' : booking.approved_at ? 'approved' : 'open');
+
+    if (status === 'paid') {
+        return 'inline-flex rounded-full border border-fuchsia-400/40 bg-fuchsia-500/15 px-2.5 py-1 text-xs font-semibold text-fuchsia-200';
+    }
+
+    if (status === 'invoiced') {
+        return 'inline-flex rounded-full border border-cyan-400/40 bg-cyan-500/15 px-2.5 py-1 text-xs font-semibold text-cyan-200';
+    }
+
+    if (status === 'executed') {
+        return 'inline-flex rounded-full border border-emerald-400/40 bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-200';
+    }
+
+    if (status === 'approved') {
+        return 'inline-flex rounded-full border border-blue-400/40 bg-blue-500/15 px-2.5 py-1 text-xs font-semibold text-blue-200';
+    }
+
+    return 'inline-flex rounded-full border border-amber-400/40 bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-200';
+};
 </script>
 
 <template>
@@ -96,13 +119,34 @@ const bookingStatus = (booking: Booking): string => {
         <template #header>
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 class="text-xl font-semibold leading-tight text-gray-800">Mine bookinger</h2>
-                    <p v-if="preview_mode" class="text-sm text-indigo-700">Preview som virksomhed: {{ preview_company?.name ?? '-' }}</p>
+                    <h2 class="text-xl font-semibold leading-tight text-gray-100">Mine bookinger</h2>
+                    <p v-if="preview_mode" class="text-sm text-cyan-300">Preview som virksomhed: {{ preview_company?.name ?? '-' }}</p>
                 </div>
                 <div class="flex gap-2">
-                    <button class="rounded px-3 py-1.5 text-xs font-semibold" :class="filter === 'all' ? 'bg-gray-900 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'" type="button" @click="filter = 'all'">Alle</button>
-                    <button class="rounded px-3 py-1.5 text-xs font-semibold" :class="filter === 'upcoming' ? 'bg-blue-600 text-white' : 'border border-blue-300 text-blue-700 hover:bg-blue-50'" type="button" @click="filter = 'upcoming'">Kommende</button>
-                    <button class="rounded px-3 py-1.5 text-xs font-semibold" :class="filter === 'past' ? 'bg-emerald-600 text-white' : 'border border-emerald-300 text-emerald-700 hover:bg-emerald-50'" type="button" @click="filter = 'past'">Tidligere</button>
+                    <button
+                        class="rounded-full px-3 py-1.5 text-xs font-semibold transition"
+                        :class="filter === 'all' ? 'border border-slate-500/50 bg-slate-700/80 text-white' : 'border border-slate-600/80 bg-slate-800/60 text-slate-300 hover:bg-slate-700/70'"
+                        type="button"
+                        @click="filter = 'all'"
+                    >
+                        Alle
+                    </button>
+                    <button
+                        class="rounded-full px-3 py-1.5 text-xs font-semibold transition"
+                        :class="filter === 'upcoming' ? 'border border-cyan-400/40 bg-cyan-500/20 text-cyan-100' : 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20'"
+                        type="button"
+                        @click="filter = 'upcoming'"
+                    >
+                        Kommende
+                    </button>
+                    <button
+                        class="rounded-full px-3 py-1.5 text-xs font-semibold transition"
+                        :class="filter === 'past' ? 'border border-emerald-400/40 bg-emerald-500/20 text-emerald-100' : 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20'"
+                        type="button"
+                        @click="filter = 'past'"
+                    >
+                        Tidligere
+                    </button>
                 </div>
             </div>
         </template>
@@ -110,17 +154,19 @@ const bookingStatus = (booking: Booking): string => {
         <div class="py-8">
             <div class="mx-auto max-w-7xl space-y-3 px-4 sm:px-6 lg:px-8">
                 <div v-if="filteredBookings.length" class="space-y-3">
-                    <div v-for="booking in filteredBookings" :key="booking.id" class="rounded-xl border bg-white p-4 shadow-sm">
+                    <div v-for="booking in filteredBookings" :key="booking.id" class="rounded-2xl border border-slate-700/70 bg-slate-900/80 p-5 shadow-xl shadow-black/20">
                         <div class="flex flex-wrap items-start justify-between gap-3">
                             <div class="space-y-1">
-                                <p class="text-sm font-semibold text-gray-900">{{ booking.title }}</p>
-                                <p class="text-xs text-gray-600">{{ booking.company?.name ?? '-' }}</p>
-                                <p class="text-xs text-gray-600">{{ booking.company_address?.formatted ?? '-' }}</p>
-                                <p class="text-xs text-gray-600">{{ formatDateTime(booking.starts_at) }} - {{ formatDateTime(booking.ends_at) }}</p>
-                                <p class="text-xs text-gray-600">Status: {{ bookingStatus(booking) }}</p>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <p class="text-sm font-semibold text-gray-100">{{ booking.title }}</p>
+                                    <span :class="bookingStatusClass(booking)">{{ bookingStatus(booking) }}</span>
+                                </div>
+                                <p class="text-xs text-gray-300">{{ booking.company?.name ?? '-' }}</p>
+                                <p class="text-xs text-gray-300">{{ booking.company_address?.formatted ?? '-' }}</p>
+                                <p class="text-xs text-gray-300">{{ formatDateTime(booking.starts_at) }} - {{ formatDateTime(booking.ends_at) }}</p>
                             </div>
-                            <div class="text-xs text-gray-700">
-                                <p>Bemanding: {{ booking.assigned_workers }} / {{ booking.required_workers }}</p>
+                            <div class="rounded-xl border border-slate-700/70 bg-slate-800/60 p-3 text-xs text-gray-200">
+                                <p class="font-semibold">Bemanding: {{ booking.assigned_workers }} / {{ booking.required_workers }}</p>
                                 <p v-if="booking.show_employee_names_to_company">
                                     Medarbejdere:
                                     {{ booking.employees.length ? booking.employees.map((employee) => employee.name).join(', ') : '-' }}
@@ -131,7 +177,7 @@ const bookingStatus = (booking: Booking): string => {
                     </div>
                 </div>
 
-                <div v-else class="rounded-xl border bg-white p-6 text-sm text-gray-600 shadow-sm">
+                <div v-else class="rounded-2xl border border-slate-700/70 bg-slate-900/80 p-6 text-sm text-gray-300 shadow-xl shadow-black/20">
                     Ingen bookinger at vise.
                 </div>
             </div>

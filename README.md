@@ -27,6 +27,20 @@ Laravel 12 + Inertia(Vue) + PostgreSQL + Redis i Docker setup.
 - `node` (Vite dev server)
 - `mailpit`
 
+## Minimal runtime (uden dev tooling)
+
+Hvis du vil køre appen uden `node` og `mailpit`, brug den dedikerede prod-compose:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Kør migrationer:
+
+```bash
+docker compose -f docker-compose.prod.yml exec app php artisan migrate --force
+```
+
 ## Kom i gang
 
 1. Kopiér miljøfil:
@@ -70,4 +84,3 @@ docker compose exec app php artisan migrate --seed
 ## Teststatus
 
 `php artisan test` kører grønt bortset fra standard `RegistrationTest`, fordi public register-route er fjernet (invitation + Google-login flow).
-

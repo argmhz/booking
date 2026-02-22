@@ -9,7 +9,7 @@ import { Head, Link } from '@inertiajs/vue3';
     <AuthenticatedLayout>
         <template #header>
             <h2
-                class="text-xl font-semibold leading-tight text-gray-800"
+                class="text-xl font-semibold leading-tight text-gray-100"
             >
                 Dashboard
             </h2>
@@ -18,13 +18,13 @@ import { Head, Link } from '@inertiajs/vue3';
         <div class="py-12">
             <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
                 <div
-                    class="overflow-hidden bg-white shadow-sm sm:rounded-lg"
+                    class="overflow-hidden rounded-2xl border border-slate-700/70 bg-slate-900/80 shadow-xl shadow-black/20"
                 >
-                    <div class="space-y-3 p-6 text-gray-900">
+                    <div class="space-y-3 p-6 text-gray-200">
                         <p>Du er logget ind.</p>
                         <Link
                             :href="route('bookings.calendar')"
-                            class="inline-flex rounded bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black"
+                            class="inline-flex items-center rounded-full border border-cyan-400/40 bg-cyan-500/20 px-4 py-2 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-500/30"
                         >
                             Gå til booking kalender
                         </Link>

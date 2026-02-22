@@ -30,9 +30,9 @@ const formatNotificationTime = (value: string): string => {
 <template>
     <div class="app-theme">
         <ToastNotifications />
-        <div class="min-h-screen bg-gray-100">
+        <div class="min-h-screen bg-gray-100 pb-8">
             <nav
-                class="border-b border-slate-700/80 bg-slate-900/90 backdrop-blur"
+                class="sticky top-0 z-40 border-b border-slate-700/90 bg-slate-950/95 backdrop-blur-xl"
             >
                 <!-- Primary Navigation Menu -->
                 <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -48,9 +48,7 @@ const formatNotificationTime = (value: string): string => {
                             </div>
 
                             <!-- Navigation Links -->
-                            <div
-                                class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex"
-                            >
+                            <div class="hidden items-center gap-6 sm:ms-10 sm:flex">
                                 <NavLink
                                     :href="route('dashboard')"
                                     :active="route().current('dashboard')"
@@ -116,7 +114,7 @@ const formatNotificationTime = (value: string): string => {
                             </div>
                         </div>
 
-                        <div class="hidden sm:ms-6 sm:flex sm:items-center gap-3">
+                        <div class="hidden gap-3 sm:ms-6 sm:flex sm:items-center">
                             <div class="relative">
                                 <Dropdown align="right" width="48">
                                     <template #trigger>
@@ -167,7 +165,7 @@ const formatNotificationTime = (value: string): string => {
                                                         :href="route('notifications.read', notification.id)"
                                                         method="post"
                                                         as="button"
-                                                        class="rounded border border-slate-600 px-2 py-1 text-[11px] text-slate-300 hover:bg-slate-800"
+                                                    class="rounded border border-slate-600 px-2 py-1 text-[11px] text-slate-300 hover:bg-slate-800"
                                                     >
                                                         {{ notification.read_at ? 'Aabn' : 'Laes' }}
                                                     </Link>
@@ -184,7 +182,7 @@ const formatNotificationTime = (value: string): string => {
                                         <span class="inline-flex rounded-md">
                                             <button
                                                 type="button"
-                                                class="inline-flex items-center rounded-md border border-transparent bg-slate-900 px-3 py-2 text-sm font-medium leading-4 text-slate-200 transition duration-150 ease-in-out hover:text-white focus:outline-none"
+                                                class="inline-flex items-center rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm font-medium leading-4 text-slate-200 transition duration-150 ease-in-out hover:text-white focus:outline-none"
                                             >
                                                 {{ currentUser?.name }}
 
@@ -271,7 +269,7 @@ const formatNotificationTime = (value: string): string => {
                         block: showingNavigationDropdown,
                         hidden: !showingNavigationDropdown,
                     }"
-                    class="sm:hidden"
+                    class="border-t border-slate-800 sm:hidden"
                 >
                     <div class="space-y-1 pb-3 pt-2">
                         <ResponsiveNavLink
@@ -343,9 +341,7 @@ const formatNotificationTime = (value: string): string => {
                         class="border-t border-slate-700 pb-1 pt-4"
                     >
                         <div class="px-4">
-                            <div
-                                class="text-base font-medium text-gray-800"
-                            >
+                            <div class="text-base font-medium text-gray-800">
                                 {{ currentUser?.name }}
                             </div>
                             <div class="text-sm font-medium text-slate-300">
@@ -371,11 +367,13 @@ const formatNotificationTime = (value: string): string => {
 
             <!-- Page Heading -->
             <header
-                class="bg-slate-900/90 shadow"
+                class="bg-transparent"
                 v-if="$slots.header"
             >
                 <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-                    <slot name="header" />
+                    <div class="rounded-2xl border border-slate-700/80 bg-slate-900/70 px-5 py-4 shadow-sm backdrop-blur">
+                        <slot name="header" />
+                    </div>
                 </div>
             </header>
 

@@ -79,7 +79,7 @@ onBeforeUnmount(() => {
         <transition name="toast">
             <div
                 v-if="showSuccess && successMessage"
-                class="pointer-events-auto rounded-lg border border-emerald-500/40 bg-emerald-950/90 px-4 py-3 text-sm text-emerald-100 shadow-lg backdrop-blur"
+                class="pointer-events-auto rounded-lg border border-emerald-500/35 bg-slate-900 px-4 py-3 text-sm text-emerald-100 shadow-xl shadow-black/30"
             >
                 {{ successMessage }}
             </div>
@@ -88,7 +88,7 @@ onBeforeUnmount(() => {
         <transition name="toast">
             <div
                 v-if="showError && errorMessage"
-                class="pointer-events-auto rounded-lg border border-rose-500/40 bg-rose-950/90 px-4 py-3 text-sm text-rose-100 shadow-lg backdrop-blur"
+                class="pointer-events-auto rounded-lg border border-rose-500/35 bg-slate-900 px-4 py-3 text-sm text-rose-100 shadow-xl shadow-black/30"
             >
                 {{ errorMessage }}
             </div>

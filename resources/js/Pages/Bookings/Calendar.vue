@@ -837,7 +837,7 @@ const revokeBookingApproval = (bookingId: number) => {
                                 :filterable="true"
                                 :get-option-label="employeeOptionLabel"
                                 :options="availableEmployees"
-                                class="mt-1"
+                                class="mt-1 booking-employee-select"
                                 placeholder="Søg medarbejder..."
                             />
                             <InputError class="mt-1" :message="addEmployeeForm.errors.employee_user_id" />
@@ -954,3 +954,35 @@ const revokeBookingApproval = (bookingId: number) => {
         </div>
     </AuthenticatedLayout>
 </template>
+
+<style scoped>
+:deep(.booking-employee-select .vs__dropdown-toggle) {
+    background: #0f172a;
+    border-color: #334155;
+}
+
+:deep(.booking-employee-select .vs__selected),
+:deep(.booking-employee-select .vs__search),
+:deep(.booking-employee-select .vs__search::placeholder),
+:deep(.booking-employee-select .vs__open-indicator),
+:deep(.booking-employee-select .vs__clear) {
+    color: #ffffff;
+    fill: #ffffff;
+}
+
+:deep(.booking-employee-select .vs__dropdown-menu) {
+    background: #0f172a;
+    border-color: #334155;
+    color: #ffffff;
+}
+
+:deep(.booking-employee-select .vs__dropdown-option) {
+    background: #0f172a;
+    color: #ffffff;
+}
+
+:deep(.booking-employee-select .vs__dropdown-option--highlight) {
+    background: #1e293b;
+    color: #ffffff;
+}
+</style>

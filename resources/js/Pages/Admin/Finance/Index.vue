@@ -63,6 +63,18 @@ const props = defineProps<{
 const openBookingId = ref<number | null>(null);
 const selectedBookingIds = ref<number[]>([]);
 
+const hasRoute = (name: string): boolean => {
+    try {
+        return route().has(name);
+    } catch {
+        return false;
+    }
+};
+
+const documentsIndexUrl = computed<string | null>(() => (
+    hasRoute('admin.finance.documents.index') ? route('admin.finance.documents.index') : null
+));
+
 const filterState = ref({
     stage: props.filters.stage ?? 'invoicing',
     from_date: props.filters.from_date ?? '',
@@ -122,6 +134,30 @@ const toggleSelected = (bookingId: number) => {
     }
 
     selectedBookingIds.value = [...selectedBookingIds.value, bookingId];
+};
+
+const createInvoiceDraft = () => {
+    if (!selectedCount.value || !hasRoute('admin.finance.documents.store-invoice-draft')) {
+        return;
+    }
+
+    router.post(route('admin.finance.documents.store-invoice-draft'), {
+        booking_ids: selectedBookingIds.value,
+    }, {
+        preserveScroll: true,
+    });
+};
+
+const createPayrollDraft = () => {
+    if (!selectedCount.value || !hasRoute('admin.finance.documents.store-payroll-draft')) {
+        return;
+    }
+
+    router.post(route('admin.finance.documents.store-payroll-draft'), {
+        booking_ids: selectedBookingIds.value,
+    }, {
+        preserveScroll: true,
+    });
 };
 
 const markInvoiced = (bookingId: number) => {
@@ -250,6 +286,13 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                 <h2 class="text-xl font-semibold leading-tight text-gray-800">Økonomi: Faktura og løn</h2>
                 <div class="flex flex-wrap gap-2">
                     <a
+                        v-if="documentsIndexUrl"
+                        :href="documentsIndexUrl"
+                        class="rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                    >
+                        Se kladder
+                    </a>
+                    <a
                         :href="route('admin.finance.export.csv', {
                             stage: filterState.stage,
                             from_date: filterState.from_date || null,
@@ -333,6 +376,22 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                                 {{ allSelected ? 'Fravælg alle' : 'Vælg alle' }}
                             </button>
                             <span class="text-xs text-gray-600">Valgt: {{ selectedCount }}</span>
+                            <button
+                                class="rounded border border-cyan-300 px-3 py-2 text-xs font-semibold text-cyan-800 hover:bg-cyan-50 disabled:opacity-40"
+                                type="button"
+                                :disabled="!selectedCount"
+                                @click="createInvoiceDraft"
+                            >
+                                Opret fakturakladde
+                            </button>
+                            <button
+                                class="rounded border border-emerald-300 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:opacity-40"
+                                type="button"
+                                :disabled="!selectedCount"
+                                @click="createPayrollDraft"
+                            >
+                                Opret lønkladde
+                            </button>
                             <button
                                 class="rounded border border-cyan-300 px-3 py-2 text-xs font-semibold text-cyan-800 hover:bg-cyan-50 disabled:opacity-40"
                                 type="button"

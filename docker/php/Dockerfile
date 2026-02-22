@@ -57,6 +57,7 @@ COPY . .
 COPY --from=vendor /app/vendor /var/www/html/vendor
 COPY --from=assets /app/public/build /var/www/html/public/build
 COPY --from=assets /app/bootstrap/ssr /var/www/html/bootstrap/ssr
+RUN cp -a /var/www/html/public /opt/app-public
 
 COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint
 RUN chmod +x /usr/local/bin/entrypoint

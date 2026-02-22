@@ -57,6 +57,7 @@ const props = defineProps<{
         stage: 'all' | 'invoicing' | 'payroll';
         from_date: string | null;
         to_date: string | null;
+        q: string | null;
     };
 }>();
 
@@ -79,6 +80,7 @@ const filterState = ref({
     stage: props.filters.stage ?? 'invoicing',
     from_date: props.filters.from_date ?? '',
     to_date: props.filters.to_date ?? '',
+    q: props.filters.q ?? '',
 });
 
 watch(() => props.bookings, () => {
@@ -102,6 +104,7 @@ const applyFilters = () => {
         stage: filterState.value.stage,
         from_date: filterState.value.from_date || null,
         to_date: filterState.value.to_date || null,
+        q: filterState.value.q || null,
     }, {
         preserveState: true,
         preserveScroll: true,
@@ -114,6 +117,7 @@ const clearFilters = () => {
         stage: 'invoicing',
         from_date: '',
         to_date: '',
+        q: '',
     };
     applyFilters();
 };
@@ -297,6 +301,7 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                             stage: filterState.stage,
                             from_date: filterState.from_date || null,
                             to_date: filterState.to_date || null,
+                            q: filterState.q || null,
                         })"
                         class="rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                         download
@@ -308,6 +313,7 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                             stage: filterState.stage,
                             from_date: filterState.from_date || null,
                             to_date: filterState.to_date || null,
+                            q: filterState.q || null,
                         })"
                         class="rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                         download
@@ -338,7 +344,16 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                             Til dato
                             <input v-model="filterState.to_date" class="mt-1 block w-full rounded border-gray-300 text-sm" type="date" />
                         </label>
-                        <div class="flex items-end gap-2 md:col-span-2">
+                        <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            Søgning
+                            <input
+                                v-model="filterState.q"
+                                class="mt-1 block w-full rounded border-gray-300 text-sm"
+                                type="text"
+                                placeholder="Titel eller virksomhed"
+                            />
+                        </label>
+                        <div class="flex items-end gap-2">
                             <button class="rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" type="button" @click="applyFilters">
                                 Opdater filter
                             </button>

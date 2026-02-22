@@ -406,10 +406,19 @@ class FinanceController extends Controller
         if ($filters['to_date']) {
             $query->whereDate('ends_at', '<=', $filters['to_date']);
         }
+
+        if ($filters['q']) {
+            $query->where(function (Builder $subQuery) use ($filters): void {
+                $search = '%'.$filters['q'].'%';
+
+                $subQuery->where('title', 'like', $search)
+                    ->orWhereHas('company', fn (Builder $companyQuery) => $companyQuery->where('name', 'like', $search));
+            });
+        }
     }
 
     /**
-     * @return array{stage: string, from_date: ?string, to_date: ?string}
+     * @return array{stage: string, from_date: ?string, to_date: ?string, q: ?string}
      */
     private function normalizeFilters(Request $request, string $defaultStage = 'invoicing'): array
     {
@@ -421,11 +430,13 @@ class FinanceController extends Controller
 
         $fromDate = $request->string('from_date')->toString();
         $toDate = $request->string('to_date')->toString();
+        $search = trim($request->string('q')->toString());
 
         return [
             'stage' => $stage,
             'from_date' => $fromDate !== '' ? $fromDate : null,
             'to_date' => $toDate !== '' ? $toDate : null,
+            'q' => $search !== '' ? $search : null,
         ];
     }
 

@@ -48,9 +48,21 @@ type FinanceBooking = {
 
 const props = defineProps<{
     bookings: FinanceBooking[];
+    filters: {
+        stage: 'all' | 'invoicing' | 'payroll';
+        from_date: string | null;
+        to_date: string | null;
+        q: string | null;
+    };
 }>();
 
 const openBookingId = ref<number | null>(null);
+const filterState = ref({
+    stage: props.filters.stage ?? 'invoicing',
+    from_date: props.filters.from_date ?? '',
+    to_date: props.filters.to_date ?? '',
+    q: props.filters.q ?? '',
+});
 
 const totalPrice = computed(() => props.bookings.reduce((sum, booking) => sum + booking.totals.price_total, 0));
 const totalWage = computed(() => props.bookings.reduce((sum, booking) => sum + booking.totals.wage_total, 0));
@@ -58,6 +70,29 @@ const totalMargin = computed(() => totalPrice.value - totalWage.value);
 
 const toggleDetails = (bookingId: number) => {
     openBookingId.value = openBookingId.value === bookingId ? null : bookingId;
+};
+
+const applyFilters = () => {
+    router.get(route('admin.finance.index'), {
+        stage: filterState.value.stage,
+        from_date: filterState.value.from_date || null,
+        to_date: filterState.value.to_date || null,
+        q: filterState.value.q || null,
+    }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+    });
+};
+
+const clearFilters = () => {
+    filterState.value = {
+        stage: 'invoicing',
+        from_date: '',
+        to_date: '',
+        q: '',
+    };
+    applyFilters();
 };
 
 const markInvoiced = (bookingId: number) => {
@@ -122,14 +157,24 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                 <h2 class="text-xl font-semibold leading-tight text-gray-800">Økonomi: Faktura og løn</h2>
                 <div class="flex flex-wrap gap-2">
                     <a
-                        :href="route('admin.finance.export.csv')"
+                        :href="route('admin.finance.export.csv', {
+                            stage: filterState.stage,
+                            from_date: filterState.from_date || null,
+                            to_date: filterState.to_date || null,
+                            q: filterState.q || null,
+                        })"
                         class="rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                         download
                     >
                         Eksportér booking CSV
                     </a>
                     <a
-                        :href="route('admin.finance.export.csv-lines')"
+                        :href="route('admin.finance.export.csv-lines', {
+                            stage: filterState.stage,
+                            from_date: filterState.from_date || null,
+                            to_date: filterState.to_date || null,
+                            q: filterState.q || null,
+                        })"
                         class="rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                         download
                     >
@@ -141,6 +186,44 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
 
         <div class="py-8">
             <div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+                <div class="rounded-xl border bg-white p-4 shadow-sm">
+                    <div class="grid gap-3 md:grid-cols-5">
+                        <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            Stage
+                            <select v-model="filterState.stage" class="mt-1 block w-full rounded border-gray-300 text-sm">
+                                <option value="invoicing">Klar til fakturering</option>
+                                <option value="payroll">Klar til løn</option>
+                                <option value="all">Alle eksekverede</option>
+                            </select>
+                        </label>
+                        <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            Fra dato
+                            <input v-model="filterState.from_date" class="mt-1 block w-full rounded border-gray-300 text-sm" type="date" />
+                        </label>
+                        <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            Til dato
+                            <input v-model="filterState.to_date" class="mt-1 block w-full rounded border-gray-300 text-sm" type="date" />
+                        </label>
+                        <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            Søgning
+                            <input
+                                v-model="filterState.q"
+                                class="mt-1 block w-full rounded border-gray-300 text-sm"
+                                type="text"
+                                placeholder="Titel eller virksomhed"
+                            />
+                        </label>
+                        <div class="flex items-end gap-2">
+                            <button class="rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" type="button" @click="applyFilters">
+                                Opdater filter
+                            </button>
+                            <button class="rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" type="button" @click="clearFilters">
+                                Nulstil
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid gap-3 sm:grid-cols-3">
                     <div class="rounded-xl border bg-white p-4 shadow-sm">
                         <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Samlet pris</p>

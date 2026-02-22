@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\BookingAssignment;
 use App\Services\BookingLifecycleService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -18,20 +20,22 @@ class FinanceController extends Controller
     {
     }
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $this->bookingLifecycleService->syncExecutedBookings();
+        $filters = $this->normalizeFilters($request);
 
         return Inertia::render('Admin/Finance/Index', [
-            'bookings' => $this->buildFinanceBookings(),
+            'bookings' => $this->buildFinanceBookings($filters),
+            'filters' => $filters,
         ]);
     }
 
-    public function exportCsv(): StreamedResponse
+    public function exportCsv(Request $request): StreamedResponse
     {
         $this->bookingLifecycleService->syncExecutedBookings();
 
-        $bookings = $this->buildFinanceBookings();
+        $bookings = $this->buildFinanceBookings($this->normalizeFilters($request, 'all'));
         $fileName = 'oekonomi-bookinger-'.now()->format('Y-m-d_His').'.csv';
 
         $headers = [
@@ -84,11 +88,11 @@ class FinanceController extends Controller
         }, $fileName, $headers);
     }
 
-    public function exportLinesCsv(): StreamedResponse
+    public function exportLinesCsv(Request $request): StreamedResponse
     {
         $this->bookingLifecycleService->syncExecutedBookings();
 
-        $bookings = $this->buildFinanceBookings();
+        $bookings = $this->buildFinanceBookings($this->normalizeFilters($request, 'all'));
         $fileName = 'oekonomi-linjer-'.now()->format('Y-m-d_His').'.csv';
 
         $headers = [
@@ -146,7 +150,7 @@ class FinanceController extends Controller
     /**
      * @return Collection<int, array<string, mixed>>
      */
-    private function buildFinanceBookings(): Collection
+    private function buildFinanceBookings(array $filters): Collection
     {
         return Booking::query()
             ->whereNotNull('executed_at')
@@ -161,6 +165,7 @@ class FinanceController extends Controller
                 'is_invoiced',
                 'is_paid',
             ])
+            ->tap(fn (Builder $query) => $this->applyFinanceFilters($query, $filters))
             ->with('company:id,name')
             ->with('companyAddress:id,company_id,label,address_line_1,address_line_2,postal_code,city,country')
             ->with([
@@ -174,7 +179,7 @@ class FinanceController extends Controller
                 },
             ])
             ->orderByDesc('ends_at')
-            ->limit(300)
+            ->limit(500)
             ->get()
             ->map(function (Booking $booking): array {
                 $timesheetsByEmployee = $booking->timesheets->keyBy('employee_user_id');
@@ -249,6 +254,58 @@ class FinanceController extends Controller
                 ];
             })
             ->values();
+    }
+
+    private function applyFinanceFilters(Builder $query, array $filters): void
+    {
+        if ($filters['stage'] === 'invoicing') {
+            $query->where('is_invoiced', false);
+        }
+
+        if ($filters['stage'] === 'payroll') {
+            $query->where('is_invoiced', true)
+                ->where('is_paid', false);
+        }
+
+        if ($filters['from_date']) {
+            $query->whereDate('ends_at', '>=', $filters['from_date']);
+        }
+
+        if ($filters['to_date']) {
+            $query->whereDate('ends_at', '<=', $filters['to_date']);
+        }
+
+        if ($filters['q']) {
+            $query->where(function (Builder $subQuery) use ($filters): void {
+                $search = '%'.$filters['q'].'%';
+
+                $subQuery->where('title', 'like', $search)
+                    ->orWhereHas('company', fn (Builder $companyQuery) => $companyQuery->where('name', 'like', $search));
+            });
+        }
+    }
+
+    /**
+     * @return array{stage: string, from_date: ?string, to_date: ?string, q: ?string}
+     */
+    private function normalizeFilters(Request $request, string $defaultStage = 'invoicing'): array
+    {
+        $stage = $request->string('stage')->toString();
+
+        if (! in_array($stage, ['all', 'invoicing', 'payroll'], true)) {
+            $stage = $defaultStage;
+        }
+
+        $fromDate = $request->string('from_date')->toString();
+        $toDate = $request->string('to_date')->toString();
+        $search = trim($request->string('q')->toString());
+
+        return [
+            'stage' => $stage,
+            'from_date' => $fromDate !== '' ? $fromDate : null,
+            'to_date' => $toDate !== '' ? $toDate : null,
+            'q' => $search !== '' ? $search : null,
+        ];
     }
 
     public function markInvoiced(Booking $booking): RedirectResponse

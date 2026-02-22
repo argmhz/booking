@@ -9,6 +9,7 @@ FROM node:22-alpine AS assets
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
+COPY --from=vendor /app/vendor/tightenco/ziggy /app/vendor/tightenco/ziggy
 COPY resources resources
 COPY public public
 COPY bootstrap bootstrap

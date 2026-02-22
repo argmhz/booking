@@ -53,6 +53,18 @@ const props = defineProps<{
 const openBookingId = ref<number | null>(null);
 const selectedBookingIds = ref<number[]>([]);
 
+const hasRoute = (name: string): boolean => {
+    try {
+        return route().has(name);
+    } catch {
+        return false;
+    }
+};
+
+const documentsIndexUrl = computed<string | null>(() => (
+    hasRoute('admin.finance.documents.index') ? route('admin.finance.documents.index') : null
+));
+
 const totalPrice = computed(() => props.bookings.reduce((sum, booking) => sum + booking.totals.price_total, 0));
 const totalWage = computed(() => props.bookings.reduce((sum, booking) => sum + booking.totals.wage_total, 0));
 const totalMargin = computed(() => totalPrice.value - totalWage.value);
@@ -77,7 +89,7 @@ const clearSelected = () => {
 };
 
 const createInvoiceDraft = () => {
-    if (!selectedBookingIds.value.length) {
+    if (!selectedBookingIds.value.length || !hasRoute('admin.finance.documents.store-invoice-draft')) {
         return;
     }
 
@@ -90,7 +102,7 @@ const createInvoiceDraft = () => {
 };
 
 const createPayrollDraft = () => {
-    if (!selectedBookingIds.value.length) {
+    if (!selectedBookingIds.value.length || !hasRoute('admin.finance.documents.store-payroll-draft')) {
         return;
     }
 
@@ -164,7 +176,8 @@ const workflowLabel = (status: FinanceBooking['workflow_status']) => {
                 <h2 class="text-xl font-semibold leading-tight text-gray-800">Økonomi: Faktura og løn</h2>
                 <div class="flex flex-wrap gap-2">
                     <a
-                        :href="route('admin.finance.documents.index')"
+                        v-if="documentsIndexUrl"
+                        :href="documentsIndexUrl"
                         class="rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                     >
                         Se kladder

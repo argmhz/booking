@@ -1,4 +1,19 @@
 services:
+  init-permissions:
+    image: alpine:3.20
+    container_name: hr_init_permissions
+    command: >
+      sh -c "mkdir -p /var/www/html/storage/logs
+      /var/www/html/storage/framework/cache
+      /var/www/html/storage/framework/sessions
+      /var/www/html/storage/framework/views
+      && chown -R ${PUID:-1000}:${PGID:-1000} /var/www/html/storage
+      && chmod -R ug+rwX /var/www/html/storage"
+    volumes:
+      - app_storage:/var/www/html/storage
+    networks:
+      - proxy
+
   app:
     build:
       context: .
@@ -14,6 +29,8 @@ services:
       - app_storage:/var/www/html/storage
       - app_public:/var/www/html/public
     depends_on:
+      init-permissions:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
       redis:
@@ -77,6 +94,8 @@ services:
       - app_storage:/var/www/html/storage
       - app_public:/var/www/html/public
     depends_on:
+      init-permissions:
+        condition: service_completed_successfully
       app:
         condition: service_started
       db:
@@ -99,6 +118,8 @@ services:
       - app_storage:/var/www/html/storage
       - app_public:/var/www/html/public
     depends_on:
+      init-permissions:
+        condition: service_completed_successfully
       app:
         condition: service_started
       db:

@@ -18,7 +18,7 @@ if [ ! -d vendor ]; then
 fi
 
 # Avoid stale provider cache from local/dev builds.
-rm -f bootstrap/cache/packages.php bootstrap/cache/services.php
+rm -f bootstrap/cache/packages.php bootstrap/cache/services.php || true
 php artisan package:discover --ansi --no-interaction
 
 exec "$@"

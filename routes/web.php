@@ -163,6 +163,18 @@ Route::middleware(['auth', 'password.set'])->group(function () {
     Route::get('/admin/finance/export/csv-lines', [AdminFinanceController::class, 'exportLinesCsv'])
         ->middleware('role:admin')
         ->name('admin.finance.export.csv-lines');
+    Route::get('/admin/finance/export/invoices-csv', [AdminFinanceController::class, 'exportInvoicesCsv'])
+        ->middleware('role:admin')
+        ->name('admin.finance.export.invoices-csv');
+    Route::get('/admin/finance/export/payroll-csv', [AdminFinanceController::class, 'exportPayrollCsv'])
+        ->middleware('role:admin')
+        ->name('admin.finance.export.payroll-csv');
+    Route::post('/admin/finance/bookings/bulk-invoiced', [AdminFinanceController::class, 'bulkMarkInvoiced'])
+        ->middleware('role:admin')
+        ->name('admin.finance.bookings.bulk-mark-invoiced');
+    Route::post('/admin/finance/bookings/bulk-paid', [AdminFinanceController::class, 'bulkMarkPaid'])
+        ->middleware('role:admin')
+        ->name('admin.finance.bookings.bulk-mark-paid');
     Route::post('/admin/finance/bookings/{booking}/invoiced', [AdminFinanceController::class, 'markInvoiced'])
         ->middleware('role:admin')
         ->name('admin.finance.bookings.mark-invoiced');

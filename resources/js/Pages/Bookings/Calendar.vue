@@ -3,6 +3,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import { computed, ref, watch } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import vSelect from 'vue-select';
+import 'vue-select/dist/vue-select.css';
 
 type Company = {
     id: number;
@@ -969,3 +971,35 @@ const revokeBookingApproval = (bookingId: number) => {
         </div>
     </AuthenticatedLayout>
 </template>
+
+<style scoped>
+:deep(.booking-employee-select .vs__dropdown-toggle) {
+    background: #0f172a;
+    border-color: #334155;
+}
+
+:deep(.booking-employee-select .vs__selected),
+:deep(.booking-employee-select .vs__search),
+:deep(.booking-employee-select .vs__search::placeholder),
+:deep(.booking-employee-select .vs__open-indicator),
+:deep(.booking-employee-select .vs__clear) {
+    color: #ffffff;
+    fill: #ffffff;
+}
+
+:deep(.booking-employee-select .vs__dropdown-menu) {
+    background: #0f172a;
+    border-color: #334155;
+    color: #ffffff;
+}
+
+:deep(.booking-employee-select .vs__dropdown-option) {
+    background: #0f172a;
+    color: #ffffff;
+}
+
+:deep(.booking-employee-select .vs__dropdown-option--highlight) {
+    background: #1e293b;
+    color: #ffffff;
+}
+</style>

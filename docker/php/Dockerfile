@@ -1,3 +1,20 @@
+FROM composer:2.8 AS vendor
+
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+
+FROM node:22-alpine AS assets
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY resources resources
+COPY public public
+COPY bootstrap bootstrap
+COPY vite.config.js tsconfig.json postcss.config.js tailwind.config.js ./
+RUN npm run build
+
 FROM php:8.4-fpm-alpine
 
 ENV TMPDIR=/tmp \
@@ -34,6 +51,11 @@ RUN apk add --no-cache \
 COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
+
+COPY . .
+COPY --from=vendor /app/vendor /var/www/html/vendor
+COPY --from=assets /app/public/build /var/www/html/public/build
+COPY --from=assets /app/bootstrap/ssr /var/www/html/bootstrap/ssr
 
 COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint
 RUN chmod +x /usr/local/bin/entrypoint

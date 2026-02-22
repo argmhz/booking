@@ -40,6 +40,8 @@ pnpm-debug.log*
 !/storage/framework/cache/.gitignore
 !/storage/framework/sessions/.gitignore
 !/storage/framework/views/.gitignore
+/bootstrap/cache/*.php
+!/bootstrap/cache/.gitignore
 
 # Test / coverage / tooling cache
 .phpunit.result.cache

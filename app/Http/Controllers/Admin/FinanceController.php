@@ -234,6 +234,7 @@ class FinanceController extends Controller
 
         $bookings = Booking::query()
             ->whereIn('id', $selectedBookingIds)
+            ->with(['timesheets:id,booking_id,status'])
             ->get();
 
         $updated = 0;
@@ -493,6 +494,14 @@ class FinanceController extends Controller
         if (! $booking->canBePaid()) {
             return back()->withErrors([
                 'booking' => 'Bookingen skal være faktureret og eksekveret før den kan markeres som betalt.',
+            ]);
+        }
+
+        $booking->loadMissing(['timesheets:id,booking_id,status']);
+
+        if ($booking->timesheets->contains(fn (Timesheet $timesheet): bool => $timesheet->status !== 'approved')) {
+            return back()->withErrors([
+                'booking' => 'Alle timesheets skal være godkendt før løn kan markeres som udbetalt.',
             ]);
         }
 

@@ -6,8 +6,10 @@ use App\Models\Company;
 use App\Models\EmployeeProfile;
 use App\Models\Skill;
 use App\Models\User;
+use Faker\Factory as FakerFactory;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class BulkDemoDataSeeder extends Seeder
 {
@@ -17,33 +19,55 @@ class BulkDemoDataSeeder extends Seeder
             RolesAndAdminSeeder::class,
         ]);
 
-        $skills = collect(range(1, 10))
-            ->map(function (int $index): Skill {
-                return Skill::firstOrCreate(
-                    ['name' => sprintf('Kompetence %02d', $index)],
-                    ['description' => "Autogenereret kompetence {$index}"],
-                );
-            });
+        $faker = FakerFactory::create('da_DK');
+        $faker->seed(20260223);
+
+        $skillCatalog = [
+            ['name' => 'Truckcertifikat', 'description' => 'Erfaring med lagerkørsel og sikker håndtering af truck.'],
+            ['name' => 'Stilladsarbejde', 'description' => 'Kan arbejde sikkert i højden og håndtere stilladsopgaver.'],
+            ['name' => 'Rengøring Industri', 'description' => 'Industrirengøring i produktion og lagerområder.'],
+            ['name' => 'Kundeservice', 'description' => 'Erfaring med kundekontakt, modtagelse og service.'],
+            ['name' => 'Kørekort B', 'description' => 'Gyldigt kørekort B og erfaring med varebil.'],
+            ['name' => 'Svejsning MIG/MAG', 'description' => 'Praktisk erfaring med svejseopgaver og kvalitetssikring.'],
+            ['name' => 'Pak & Pluk', 'description' => 'Pakning, plukning og scanning i lagerstyring.'],
+            ['name' => 'Byggeplads Sikkerhed', 'description' => 'Kendskab til sikkerhedsprocedurer på byggeplads.'],
+            ['name' => 'Elektrisk Montør', 'description' => 'Montering og fejlfinding på lettere el-installationer.'],
+            ['name' => 'Event Crew', 'description' => 'Opsætning, nedtagning og afvikling af events.'],
+        ];
+
+        $skills = collect($skillCatalog)->map(function (array $skillData): Skill {
+            return Skill::updateOrCreate(
+                ['name' => $skillData['name']],
+                ['description' => $skillData['description']],
+            );
+        });
+
+        $skillIds = $skills->pluck('id')->all();
 
         foreach (range(1, 100) as $index) {
-            Company::firstOrCreate(
-                ['cvr' => sprintf('%08d', 70000000 + $index)],
+            $companyName = rtrim($faker->company(), '.');
+            $companySlug = Str::slug($companyName);
+
+            Company::updateOrCreate(
+                ['cvr' => sprintf('%08d', 50000000 + $index)],
                 [
-                    'name' => sprintf('Virksomhed %03d ApS', $index),
-                    'email' => sprintf('company%03d@example.test', $index),
-                    'phone' => sprintf('+45%08d', 20000000 + $index),
+                    'name' => $companyName,
+                    'email' => "{$companySlug}-{$index}@example.test",
+                    'phone' => '+45'.preg_replace('/\D+/', '', $faker->numerify('########')),
                     'is_active' => true,
                 ],
             );
         }
 
         foreach (range(1, 50) as $index) {
-            $email = sprintf('employee%03d@example.test', $index);
+            $fullName = $faker->name();
+            $emailSlug = Str::slug($fullName);
+            $email = "{$emailSlug}.{$index}@example.test";
 
-            $employee = User::firstOrCreate(
+            $employee = User::updateOrCreate(
                 ['email' => $email],
                 [
-                    'name' => sprintf('Medarbejder %03d', $index),
+                    'name' => $fullName,
                     'password' => Hash::make('password'),
                     'email_verified_at' => now(),
                     'locale' => 'da',
@@ -53,24 +77,22 @@ class BulkDemoDataSeeder extends Seeder
 
             $employee->assignRole('employee');
 
-            $profile = EmployeeProfile::firstOrCreate(
+            $profile = EmployeeProfile::updateOrCreate(
                 ['user_id' => $employee->id],
                 [
-                    'phone' => sprintf('+45%08d', 30000000 + $index),
-                    'hourly_wage' => 145 + ($index % 30),
-                    'hourly_customer_rate' => 260 + ($index % 40),
+                    'phone' => '+45'.preg_replace('/\D+/', '', $faker->numerify('########')),
+                    'hourly_wage' => $faker->numberBetween(145, 220),
+                    'hourly_customer_rate' => $faker->numberBetween(260, 380),
                     'is_active' => true,
                 ],
             );
 
-            $skillIds = $skills
-                ->shuffle()
-                ->take(random_int(2, 5))
-                ->pluck('id')
-                ->all();
+            $assignedSkillIds = $faker->randomElements(
+                $skillIds,
+                $faker->numberBetween(2, min(5, count($skillIds)))
+            );
 
-            $profile->skills()->syncWithoutDetaching($skillIds);
+            $profile->skills()->sync($assignedSkillIds);
         }
     }
 }
-

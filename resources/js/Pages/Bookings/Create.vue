@@ -8,16 +8,23 @@ import vSelect from 'vue-select';
 type Company = {
     id: number;
     name: string;
-    addresses: {
-        id: number;
-        label: string;
-        address_line_1: string;
-        address_line_2: string | null;
-        postal_code: string | null;
-        city: string;
-        country: string;
-        is_default: boolean;
-    }[];
+    addresses: CompanyAddress[];
+};
+
+type CompanyAddress = {
+    id: number;
+    label: string;
+    address_line_1: string;
+    address_line_2: string | null;
+    postal_code: string | null;
+    city: string;
+    country: string;
+    is_default: boolean;
+};
+
+type AddressOption = {
+    id: number | null;
+    name: string;
 };
 
 const props = defineProps<{
@@ -56,6 +63,15 @@ const selectedCompany = computed<Company | null>({
 });
 
 const availableAddresses = computed(() => selectedCompany.value?.addresses ?? []);
+const addressOptions = computed<AddressOption[]>(() => {
+    const options = availableAddresses.value.map((address) => ({
+        id: address.id,
+        name: `${address.label} - ${address.address_line_1}, ${address.postal_code ?? ''} ${address.city}`.trim(),
+    }));
+
+    return [{ id: null, name: 'Ingen specifik adresse' }, ...options];
+});
+const addressOptionValue = (option: AddressOption): number | null => option.id;
 const fieldClass = 'mt-1 block w-full rounded-lg border-gray-300 bg-white text-sm shadow-sm transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200';
 const checkboxClass = 'h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500';
 
@@ -115,12 +131,15 @@ const submit = () => {
 
                         <label class="block text-sm text-gray-700 sm:col-span-2">
                             <span class="font-medium">Adresse</span>
-                            <select v-model="form.company_address_id" :class="fieldClass">
-                                <option :value="null">Ingen specifik adresse</option>
-                                <option v-for="address in availableAddresses" :key="address.id" :value="address.id">
-                                    {{ address.label }} - {{ address.address_line_1 }}, {{ address.postal_code ?? '' }} {{ address.city }}
-                                </option>
-                            </select>
+                            <v-select
+                                v-model="form.company_address_id"
+                                :options="addressOptions"
+                                :reduce="addressOptionValue"
+                                class="booking-v-select mt-1"
+                                label="name"
+                                :clearable="false"
+                                placeholder="Søg adresse..."
+                            />
                             <InputError class="mt-1" :message="form.errors.company_address_id" />
                         </label>
 

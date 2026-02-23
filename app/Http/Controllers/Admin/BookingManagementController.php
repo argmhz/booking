@@ -13,7 +13,9 @@ use App\Services\BookingStaffingService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Throwable;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -170,7 +172,16 @@ class BookingManagementController extends Controller
             ->values();
 
         if ($recipients->isNotEmpty()) {
-            Notification::send($recipients, new BookingApprovedNotification($booking, $request->user()));
+            try {
+                Notification::send($recipients, new BookingApprovedNotification($booking, $request->user()));
+            } catch (Throwable $exception) {
+                Log::warning('Booking approval notification failed', [
+                    'booking_id' => $booking->id,
+                    'recipient_ids' => $recipients->pluck('id')->values()->all(),
+                    'error' => $exception->getMessage(),
+                ]);
+                report($exception);
+            }
         }
 
         return back()->with('status', 'Booking godkendt.');

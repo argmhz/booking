@@ -47,7 +47,11 @@ const form = useForm({
 const selectedCompany = computed<Company | null>({
     get: () => props.companies.find((company) => company.id === form.company_id) ?? null,
     set: (company) => {
-        form.company_id = company?.id ?? null;
+        if (!company) {
+            return;
+        }
+
+        form.company_id = company.id;
     },
 });
 

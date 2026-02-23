@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
+import vSelect from 'vue-select';
 
 type Company = {
     id: number;
@@ -43,8 +44,11 @@ const form = useForm({
     show_employee_names_to_company: false,
 });
 
-const selectedCompany = computed(() => {
-    return props.companies.find((company) => company.id === form.company_id) ?? null;
+const selectedCompany = computed<Company | null>({
+    get: () => props.companies.find((company) => company.id === form.company_id) ?? null,
+    set: (company) => {
+        form.company_id = company?.id ?? null;
+    },
 });
 
 const availableAddresses = computed(() => selectedCompany.value?.addresses ?? []);
@@ -94,11 +98,14 @@ const submit = () => {
                     <form class="grid gap-5 sm:grid-cols-2" @submit.prevent="submit">
                         <label class="block text-sm text-gray-700 sm:col-span-2">
                             <span class="font-medium">Virksomhed</span>
-                            <select v-model="form.company_id" :class="fieldClass">
-                                <option v-for="company in companies" :key="company.id" :value="company.id">
-                                    {{ company.name }}
-                                </option>
-                            </select>
+                            <v-select
+                                v-model="selectedCompany"
+                                :options="companies"
+                                class="booking-v-select mt-1"
+                                label="name"
+                                :clearable="false"
+                                placeholder="Søg virksomhed..."
+                            />
                             <InputError class="mt-1" :message="form.errors.company_id" />
                         </label>
 
@@ -179,3 +186,17 @@ const submit = () => {
         </div>
     </AuthenticatedLayout>
 </template>
+
+<style scoped>
+:deep(.booking-v-select .vs__dropdown-toggle) {
+    border-radius: 0.5rem;
+    border-color: rgb(209 213 219);
+    min-height: 42px;
+}
+
+:deep(.booking-v-select .vs__search),
+:deep(.booking-v-select .vs__selected),
+:deep(.booking-v-select .vs__dropdown-option) {
+    font-size: 0.875rem;
+}
+</style>

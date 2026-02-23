@@ -48,7 +48,7 @@ class BulkDemoDataSeeder extends Seeder
             $companyName = rtrim($faker->company(), '.');
             $companySlug = Str::slug($companyName);
 
-            Company::updateOrCreate(
+            $company = Company::updateOrCreate(
                 ['cvr' => sprintf('%08d', 50000000 + $index)],
                 [
                     'name' => $companyName,
@@ -57,6 +57,30 @@ class BulkDemoDataSeeder extends Seeder
                     'is_active' => true,
                 ],
             );
+
+            $addressCount = $faker->numberBetween(1, 3);
+            $addressLabels = ['Hovedadresse', 'Lager', 'Lokation 3'];
+            $activeLabels = array_slice($addressLabels, 0, $addressCount);
+
+            $company->addresses()
+                ->whereNotIn('label', $activeLabels)
+                ->delete();
+
+            foreach ($activeLabels as $addressIndex => $label) {
+                $company->addresses()->updateOrCreate(
+                    ['label' => $label],
+                    [
+                        'address_line_1' => $faker->streetAddress(),
+                        'address_line_2' => $faker->boolean(30)
+                            ? sprintf('%d. %s', $faker->numberBetween(1, 5), $faker->randomElement(['tv', 'th', 'mf']))
+                            : null,
+                        'postal_code' => $faker->postcode(),
+                        'city' => $faker->city(),
+                        'country' => 'Danmark',
+                        'is_default' => $addressIndex === 0,
+                    ],
+                );
+            }
         }
 
         foreach (range(1, 50) as $index) {

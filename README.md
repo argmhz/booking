@@ -41,6 +41,28 @@ Kør migrationer:
 docker compose -f docker-compose.prod.yml exec app php artisan migrate --force
 ```
 
+## Deploy på prod server
+
+Kør deploy-scriptet fra projektroden:
+
+```bash
+./scripts/deploy-prod.sh
+```
+
+Scriptet gør følgende:
+- henter nyeste `origin/main`
+- bygger app image (inkl. frontend assets)
+- genstarter prod services i `docker-compose.prod.yml`
+- kører migrationer med `--force`
+
+Valgfrie flags:
+
+```bash
+./scripts/deploy-prod.sh --skip-build
+./scripts/deploy-prod.sh --skip-migrate
+./scripts/deploy-prod.sh --allow-dirty
+```
+
 ## Kom i gang
 
 1. Kopiér miljøfil:
